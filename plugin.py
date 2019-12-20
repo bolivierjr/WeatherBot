@@ -4,11 +4,10 @@
 # Copyright (c) 2018, Bruce Olivier
 # All rights reserved.
 
-import sys
 import logging
 from typing import List
 from .models.users import User
-from supybot import utils, plugins, ircutils, callbacks
+from supybot import utils, plugins, ircutils, callbacks, ircmsgs
 from supybot.commands import wrap, optional, getopts
 
 try:
@@ -32,7 +31,12 @@ class WeatherBot(callbacks.Plugin):
 
     threaded = True
 
-    def createdb(self, irc, msg, args):
+    def createdb(
+        self,
+        irc: callbacks.NestedCommandsIrcProxy,
+        msg: ircmsgs.IrcMsg,
+        args: List[str],
+    ) -> None:
         """- takes no arguments.
         Creates a new user table.
         """
@@ -41,7 +45,13 @@ class WeatherBot(callbacks.Plugin):
 
     createdb = wrap(createdb, ["owner"])
 
-    def wz(self, irc, msg, args, text: str):
+    def wz(
+        self,
+        irc: callbacks.NestedCommandsIrcProxy,
+        msg: ircmsgs.IrcMsg,
+        args: List[str],
+        text: str,
+    ) -> None:
         """- optional <location>
         Calls the weather.
         """
@@ -49,10 +59,10 @@ class WeatherBot(callbacks.Plugin):
 
         try:
             if not location:
-                userinfo: User = User.get(host=msg)
-                irc.reply(f"host is {msg}", prefixNick=False)
-
-            irc.reply(location)
+                userinfo: User = User.get(host=msg.host)
+                irc.reply(f"host is {msg.host}", prefixNick=False)
+            else:
+                irc.reply(location)
 
         except User.DoesNotExist:
             irc.reply(
@@ -61,18 +71,16 @@ class WeatherBot(callbacks.Plugin):
 
     wz = wrap(wz, [optional("text")])
 
-    def setweather(self, irc, msg, args, text: str):
+    def setweather(
+        self,
+        irc: callbacks.NestedCommandsIrcProxy,
+        msg: ircmsgs.IrcMsg,
+        args: List[str],
+        text: str,
+    ) -> None:
         """<location>
         Sets the weather location for a user.
         """
-
-        userinfo = {
-            "host": msg.host,
-            "nick": msg.nick,
-            "location": text,
-        }
-
-        irc.reply(f"user: {msg.args[0]}")
 
     setweather = wrap(setweather, ["text"])
 
