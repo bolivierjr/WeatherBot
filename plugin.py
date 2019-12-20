@@ -10,7 +10,6 @@ from typing import List
 from .models.users import User
 from supybot import utils, plugins, ircutils, callbacks
 from supybot.commands import wrap, optional, getopts
-from .utils.user import UserInfo
 
 try:
     from supybot.i18n import PluginInternationalization

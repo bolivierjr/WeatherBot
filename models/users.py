@@ -4,7 +4,6 @@ from os.path import dirname, abspath, join, isfile
 from peewee import (
     SqliteDatabase,
     CharField,
-    SmallIntegerField,
     DateTimeField,
     Model,
 )
