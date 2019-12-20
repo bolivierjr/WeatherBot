@@ -17,8 +17,8 @@ db = SqliteDatabase(db_path)
 
 
 class User(Model):
-    nick = CharField(max_length=15, null=False)
-    host = CharField(unique=True, max_length=255, null=False)
+    nick = CharField(unique=True, max_length=15, null=False)
+    host = CharField(max_length=255, null=False)
     location = CharField(max_length=80, null=False)
     created_at = DateTimeField(default=datetime.now)
 

@@ -28,6 +28,17 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
+def _check_user(nick: str) -> Union[User, None]:
+    user: Union[User, None]
+
+    try:
+        user = User.get(User.nick == nick)
+    except User.DoesNotExist:
+        user = None
+
+    return user
+
+
 class WeatherBot(callbacks.Plugin):
     """A weather script that uses APIXU's api.
     """
@@ -67,16 +78,11 @@ class WeatherBot(callbacks.Plugin):
         Calls the weather.
         """
         location: str = text
-        userinfo: Union[User, None]
 
         try:
-            try:
-                userinfo = User.get(host=msg.nick)
-            except User.DoesNotExist:
-                log.info(f"{msg.nick} not found in db.")
-                userinfo = None
+            user: Union[User, None] = _check_user(msg.nick)
 
-            if not location and userinfo:
+            if not location and user:
                 pass
 
             irc.reply(
@@ -99,32 +105,27 @@ class WeatherBot(callbacks.Plugin):
         """<location>
         Sets the weather location for a user.
         """
-        userinfo = {
+        info = {
             "nick": msg.nick,
             "host": msg.host,
             "location": html.escape(text),
         }
-        user: Union[User, None]
 
         try:
-            try:
-                user = User.get(nick=msg.nick)
-            except User.DoesNotExist:
-                user = None
-
-            userschema = UserSchema().load(userinfo)
-            location = userschema["location"]
+            user_schema: Dict[str, str] = UserSchema().load(info)
+            user: Union[User, None] = _check_user(user_schema["nick"])
 
             if user:
-                user.location = location
+                user.location = user_schema["location"]
+                user.host = user_schema["host"]
                 user.save()
             else:
-                new_user = User(**userschema)
+                new_user = User(**user_schema)
                 new_user.save()
 
-            log.info(f"{msg.nick} set it his location to {location}")
+            log.info(f"{msg.nick} set it his location to {text}")
             irc.reply(
-                f"{msg.nick} has set location to {location}", prefixNick=False,
+                f"{msg.nick} has set location to {text}", prefixNick=False,
             )
 
         except ValidationError as exc:
