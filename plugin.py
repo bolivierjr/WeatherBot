@@ -10,6 +10,7 @@ from peewee import DatabaseError
 from typing import List, Union, Dict
 from requests import RequestException
 from marshmallow import ValidationError
+from .utils.errors import LocationNotFound
 from .models.users import User, UserSchema
 from .utils.helpers import check_user, find_geolocation, find_current_weather
 from supybot import utils, plugins, ircutils, callbacks, ircmsgs
@@ -70,7 +71,7 @@ class WeatherBot(callbacks.Plugin):
         """
         try:
             geo: Dict[str, str]
-            weather: Dict[str, str]
+            weather: Union[Dict[str, str], None] = None
             user: Union[User, None] = check_user(msg.nick)
 
             if not text and not user:
@@ -79,27 +80,30 @@ class WeatherBot(callbacks.Plugin):
                 )
 
             elif user and not text:
-                weather = find_current_weather()
-
-            elif user and text:
-                weather = find_current_weather()
+                weather = find_current_weather(user.coordinates)
 
             else:
-                deserialized_location = UserSchema().load(
-                    {"location", html.escape(text)}, partial=True
+                deserialized_location: Dict[str, str] = UserSchema().load(
+                    {"location": html.escape(text)}, partial=True
                 )
                 geo = find_geolocation(deserialized_location["location"])
-                weather = find_current_weather()
+                weather = find_current_weather(geo["coordinates"])
+
+            if weather:
+                irc.reply(f"{weather}", prefixNick=False)
 
         except ValidationError as exc:
             if "location" in exc.messages:
                 message = exc.messages["location"][0]
-                irc.reply(message, prefixNick=False)
+                irc.reply(message, prefixßNick=False)
             log.error(str(exc), exc_info=True)
 
         except DatabaseError as exc:
             log.error(str(exc), exc_info=True)
             irc.reply("There is an error. Contact admin.", prefixNick=False)
+
+        except LocationNotFound as exc:
+            irc.reply(str(exc), prefixNick=False)
 
         except RequestException as exc:
             log.error(str(exc), exc_info=True)
@@ -152,6 +156,9 @@ class WeatherBot(callbacks.Plugin):
         except DatabaseError as exc:
             log.error(str(exc), exc_info=True)
             irc.reply("There was an error. Contact admin.", prefixNick=False)
+
+        except LocationNotFound as exc:
+            irc.reply(str(exc), prefixNick=False)
 
         except RequestException as exc:
             log.error(str(exc), exc_info=True)
