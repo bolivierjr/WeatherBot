@@ -1,12 +1,12 @@
 import os
 import logging
 import requests
-from .errors import LocationNotFound
-from ..models.users import User
-from functools import lru_cache
 from dotenv import load_dotenv
 from typing import Union, Dict
+from ..models.users import User
+from .errors import LocationNotFound
 from os.path import dirname, abspath, join
+from cachetools import cached, LRUCache, TTLCache
 
 
 path: str = dirname(abspath(__file__))
@@ -26,7 +26,7 @@ def check_user(nick: str) -> Union[User, None]:
     return user
 
 
-@lru_cache(maxsize=64)
+@cached(cache=LRUCache(maxsize=32))
 def find_geolocation(location: str) -> Dict[str, str]:
     payload = {
         "access_key": os.getenv("WS_API_KEY"),
@@ -51,6 +51,7 @@ def find_geolocation(location: str) -> Dict[str, str]:
     return {"location": name, "region": region, "coordinates": coordinates}
 
 
+@cached(cache=TTLCache(maxsize=32, ttl=900))
 def find_current_weather(coordinates: str) -> Dict[str, Union[str, float]]:
     darksky_key: str = os.getenv("DS_API_KEY")
     payload = {"exclude": "minutely,hourly,flags"}
