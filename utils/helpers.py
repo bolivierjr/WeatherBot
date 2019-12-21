@@ -1,5 +1,4 @@
 import os
-import logging
 import requests
 from dotenv import load_dotenv
 from typing import Union, Dict
@@ -12,8 +11,6 @@ from cachetools import cached, LRUCache, TTLCache
 path: str = dirname(abspath(__file__))
 env_path: str = join(path, "..", ".env")
 load_dotenv(dotenv_path=env_path)
-
-log = logging.getLogger(__name__)
 
 
 def check_user(nick: str) -> Union[User, None]:

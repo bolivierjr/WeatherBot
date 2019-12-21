@@ -1,5 +1,5 @@
-import logging
 from datetime import datetime
+from supybot import log
 from os.path import dirname, abspath, join, isfile
 from marshmallow import Schema, fields, validates, ValidationError
 from peewee import (
@@ -10,7 +10,6 @@ from peewee import (
 )
 
 
-log = logging.getLogger(__name__)
 path: str = dirname(abspath(__file__))
 db_path: str = join(path, "..", "data", "Weather.db")
 db = SqliteDatabase(db_path)

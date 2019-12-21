@@ -5,7 +5,6 @@
 # All rights reserved.
 
 import html
-import logging
 from peewee import DatabaseError
 from typing import List, Union, Dict
 from requests import RequestException
@@ -13,7 +12,7 @@ from marshmallow import ValidationError
 from .utils.errors import LocationNotFound
 from .models.users import User, UserSchema
 from .utils.helpers import check_user, find_geolocation, find_current_weather
-from supybot import utils, plugins, ircutils, callbacks, ircmsgs
+from supybot import utils, plugins, ircutils, callbacks, ircmsgs, log
 from supybot.commands import wrap, optional, getopts
 
 try:
@@ -25,10 +24,6 @@ except ImportError:
     # without the i18n module
     def _(x):
         return x
-
-
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger(__name__)
 
 
 class WeatherBot(callbacks.Plugin):
@@ -95,7 +90,7 @@ class WeatherBot(callbacks.Plugin):
         except ValidationError as exc:
             if "location" in exc.messages:
                 message = exc.messages["location"][0]
-                irc.reply(message, prefixßNick=False)
+                irc.reply(message, prefixNick=False)
             log.error(str(exc), exc_info=True)
 
         except DatabaseError as exc:
