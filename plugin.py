@@ -6,10 +6,12 @@
 
 import html
 import logging
-from typing import List, Union
 from peewee import DatabaseError
+from typing import List, Union, Dict
+from requests import RequestException
 from marshmallow import ValidationError
 from .models.users import User, UserSchema
+from .utils.helpers import check_user, find_geolocation, find_current_weather
 from supybot import utils, plugins, ircutils, callbacks, ircmsgs
 from supybot.commands import wrap, optional, getopts
 
@@ -28,19 +30,8 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-def _check_user(nick: str) -> Union[User, None]:
-    user: Union[User, None]
-
-    try:
-        user = User.get(User.nick == nick)
-    except User.DoesNotExist:
-        user = None
-
-    return user
-
-
 class WeatherBot(callbacks.Plugin):
-    """A weather script that uses APIXU's api.
+    """A weather script that uses Darksky and Weatherstack.
     """
 
     threaded = True
@@ -77,21 +68,42 @@ class WeatherBot(callbacks.Plugin):
         """- optional <location>
         Calls the weather.
         """
-        location: str = text
-
         try:
-            user: Union[User, None] = _check_user(msg.nick)
+            geo: Dict[str, str]
+            weather: Dict[str, str]
+            user: Union[User, None] = check_user(msg.nick)
 
-            if not location and user:
-                pass
+            if not text and not user:
+                irc.reply(
+                    f"No weather location set by {msg.nick}", prefixNick=False
+                )
 
-            irc.reply(
-                f"No weather location set by {msg.nick}.", prefixNick=False
-            )
+            elif user and not text:
+                weather = find_current_weather()
+
+            elif user and text:
+                weather = find_current_weather()
+
+            else:
+                deserialized_location = UserSchema().load(
+                    {"location", html.escape(text)}, partial=True
+                )
+                geo = find_geolocation(deserialized_location["location"])
+                weather = find_current_weather()
+
+        except ValidationError as exc:
+            if "location" in exc.messages:
+                message = exc.messages["location"][0]
+                irc.reply(message, prefixNick=False)
+            log.error(str(exc), exc_info=True)
 
         except DatabaseError as exc:
-            log.error(str(exc))
+            log.error(str(exc), exc_info=True)
             irc.reply("There is an error. Contact admin.", prefixNick=False)
+
+        except RequestException as exc:
+            log.error(str(exc), exc_info=True)
+            irc.reply("There was an error. Contact admin.", prefixNick=False)
 
     wz = wrap(wz, [optional("text")])
 
@@ -105,19 +117,22 @@ class WeatherBot(callbacks.Plugin):
         """<location>
         Sets the weather location for a user.
         """
-        info = {
-            "nick": msg.nick,
-            "host": msg.host,
-            "location": html.escape(text),
-        }
-
         try:
-            user_schema: Dict[str, str] = UserSchema().load(info)
-            user: Union[User, None] = _check_user(user_schema["nick"])
+            deserialized_location: Dict[str, str] = UserSchema().load(
+                {"location": html.escape(text)}, partial=True
+            )
+            geo: Dict[str, str] = find_geolocation(
+                deserialized_location["location"]
+            )
+            geo.update({"nick": msg.nick, "host": f"{msg.user}@{msg.host}"})
+            user_schema: Dict[str, str] = UserSchema().load(geo)
+            user: Union[User, None] = check_user(msg.nick)
 
             if user:
-                user.location = user_schema["location"]
                 user.host = user_schema["host"]
+                user.location = user_schema["location"]
+                user.region = user_schema["region"]
+                user.coordinates = user_schema["coordinates"]
                 user.save()
             else:
                 new_user = User(**user_schema)
@@ -132,10 +147,15 @@ class WeatherBot(callbacks.Plugin):
             if "location" in exc.messages:
                 message = exc.messages["location"][0]
                 irc.reply(message, prefixNick=False)
+            log.error(str(exc), exc_info=True)
 
         except DatabaseError as exc:
-            log.error(str(exc))
-            irc.reply("There is an error. Contact admin.", prefixNick=False)
+            log.error(str(exc), exc_info=True)
+            irc.reply("There was an error. Contact admin.", prefixNick=False)
+
+        except RequestException as exc:
+            log.error(str(exc), exc_info=True)
+            irc.reply("There was an error. Contact admin.", prefixNick=False)
 
     setweather = wrap(setweather, ["text"])
 

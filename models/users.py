@@ -20,6 +20,8 @@ class User(Model):
     nick = CharField(unique=True, max_length=15, null=False)
     host = CharField(max_length=255, null=False)
     location = CharField(max_length=80, null=False)
+    region = CharField(max_length=80, null=False)
+    coordinates = CharField(max_length=20, null=False)
     created_at = DateTimeField(default=datetime.now)
 
     class Meta:
@@ -43,6 +45,8 @@ class UserSchema(Schema):
     nick = fields.String(required=True)
     host = fields.String(required=True)
     location = fields.String(required=True)
+    region = fields.String(required=True)
+    coordinates = fields.String(required=True)
 
     @validates("location")
     def validate_location(self, data, **kwargs):
