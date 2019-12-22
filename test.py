@@ -28,11 +28,74 @@
 
 ###
 
+from unittest import TestCase, mock
 from supybot.test import *
+from .utils.helpers import find_geolocation
+from .utils.errors import LocationNotFound
 
 
 class WeatherBotTestCase(PluginTestCase):
-    plugins = ('WeatherBot',)
+    plugins = ("WeatherBot",)
 
 
-# vim:set shiftwidth=4 tabstop=4 expandtab textwidth=79:
+class UtilsHelpersTestCase(TestCase):
+    geo_response = {
+        "location": {
+            "name": "New York",
+            "country": "United States of America",
+            "region": "New York",
+            "lat": "40.714",
+            "lon": "-74.006",
+            "timezone_id": "America/New_York",
+            "localtime": "2019-12-21 17:28",
+            "localtime_epoch": 1576949280,
+            "utc_offset": "-5.0",
+        }
+    }
+    failed_geo_response = {
+        "success": False,
+        "error": {
+            "code": 615,
+            "type": "request_failed",
+            "info": "Your API request failed. Please try again or contact support.",
+        },
+    }
+    geo_parameters = [
+        "New York, NY",
+        "Mandeville, LA",
+        "70447",
+        "70447",
+        "New York, NY",
+    ]
+
+    def test_find_geolocation_and_lru_cache(self):
+        """
+        Testing lru_cache is only making requests hit the geolocation
+        api on new results that aren't cached and find_geolocation
+        is returning the correct dictionary of results back.
+        """
+        with mock.patch("requests.get", autospec=True) as mocker:
+            mocker.return_value.status_code = 200
+            mocker.return_value.json.return_value = self.geo_response
+            for param in self.geo_parameters:
+                geolocation = find_geolocation(param)
+
+            expected = {
+                "location": "New York",
+                "region": "New York",
+                "coordinates": "40.714,-74.006",
+            }
+            self.assertEqual(mocker.call_count, 3)
+            self.assertEqual(geolocation, expected)
+
+    def test_find_geolocation_raises_exception(self):
+        """
+        Testing find_geolocation raises a LocationNotFound exception
+        when the geolocation api is unable to find location given.
+        """
+        with mock.patch("requests.get", autospec=True) as mocker:
+            mocker.return_value.status_code = 200
+            mocker.return_value.json.return_value = self.failed_geo_response
+
+            with self.assertRaises(LocationNotFound):
+                find_geolocation("70888")

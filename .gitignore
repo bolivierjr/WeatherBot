@@ -10,3 +10,8 @@ venv/
 backup/
 web/
 tmp/
+conf/
+test-conf/
+test-data/
+test-logs/
+logs/
