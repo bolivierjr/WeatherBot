@@ -1,5 +1,6 @@
 import os
 import requests
+from supybot import log
 from dotenv import load_dotenv
 from typing import Union, Dict
 from ..models.users import User
@@ -36,6 +37,7 @@ def find_geolocation(location: str) -> Dict[str, str]:
 
     res_data = response.json()
     if response.status_code == 200 and "error" in res_data:
+        log.error(f"geolocation: {res_data['error']['info']}")
         raise LocationNotFound("Unable to find this location.")
 
     res_location: Dict[str, Union[str, float]] = res_data.get("location")

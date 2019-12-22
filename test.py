@@ -62,40 +62,40 @@ class UtilsHelpersTestCase(TestCase):
     }
     geo_parameters = [
         "New York, NY",
-        "Mandeville, LA",
         "70447",
+        "Mandeville, LA",
         "70447",
         "New York, NY",
     ]
 
-    def test_find_geolocation_and_lru_cache(self):
+    @mock.patch("requests.get", autospec=True)
+    def test_find_geolocation_and_lru_cache(self, mocker):
         """
         Testing lru_cache is only making requests hit the geolocation
         api on new results that aren't cached and find_geolocation
         is returning the correct dictionary of results back.
         """
-        with mock.patch("requests.get", autospec=True) as mocker:
-            mocker.return_value.status_code = 200
-            mocker.return_value.json.return_value = self.geo_response
-            for param in self.geo_parameters:
-                geolocation = find_geolocation(param)
+        mocker.return_value.status_code = 200
+        mocker.return_value.json.return_value = self.geo_response
+        for param in self.geo_parameters:
+            geolocation = find_geolocation(param)
 
-            expected = {
-                "location": "New York",
-                "region": "New York",
-                "coordinates": "40.714,-74.006",
-            }
-            self.assertEqual(mocker.call_count, 3)
-            self.assertEqual(geolocation, expected)
+        expected = {
+            "location": "New York",
+            "region": "New York",
+            "coordinates": "40.714,-74.006",
+        }
+        self.assertEqual(mocker.call_count, 3)
+        self.assertEqual(geolocation, expected)
+        self.assertTrue(mocker.return_value.raise_for_status.called)
 
-    def test_find_geolocation_raises_exception(self):
+    @mock.patch("requests.get", autospec=True)
+    def test_find_geolocation_raises_exception(self, mocker):
         """
         Testing find_geolocation raises a LocationNotFound exception
         when the geolocation api is unable to find location given.
         """
-        with mock.patch("requests.get", autospec=True) as mocker:
-            mocker.return_value.status_code = 200
-            mocker.return_value.json.return_value = self.failed_geo_response
+        mocker.return_value.status_code = 200
+        mocker.return_value.json.return_value = self.failed_geo_response
 
-            with self.assertRaises(LocationNotFound):
-                find_geolocation("70888")
+        self.assertRaises(LocationNotFound, find_geolocation, "70888")
