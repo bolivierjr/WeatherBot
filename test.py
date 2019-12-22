@@ -30,11 +30,20 @@
 
 from unittest import TestCase, mock
 from supybot.test import PluginTestCase
-from requests import RequestException
+from requests import RequestException, HTTPError
 from .utils.errors import LocationNotFound
 from .utils.helpers import lru_cache, ttl_cache
 from .utils.helpers import find_geolocation, find_current_weather
 from .test_responses import geo_response, failed_geo_response, weather_response
+
+
+def _mock_error_response(status: int, raise_for_status: RequestException) -> mock.Mock:
+    mock_response = mock.Mock()
+    mock_response.raise_for_status = mock.Mock()
+    mock_response.raise_for_status.side_effect = raise_for_status
+    mock_response.status_code = status
+
+    return mock_response
 
 
 class WeatherBotTestCase(PluginTestCase):
@@ -51,10 +60,10 @@ class UtilsFindGeoTestCase(TestCase):
         "New York, NY",
     ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         lru_cache.clear()  # Clear any cached results
 
-    def test_find_geolocation_and_lru_cache(self, mocker):
+    def test_find_geolocation_and_lru_cache(self, mocker: mock.patch) -> None:
         """
         Testing lru_cache is only making requests hit the geolocation
         api on new results that aren't cached and find_geolocation
@@ -74,7 +83,7 @@ class UtilsFindGeoTestCase(TestCase):
         self.assertEqual(geolocation, expected)
         self.assertTrue(mocker.return_value.raise_for_status.called)
 
-    def test_find_geolocation_raises_location_not_found(self, mocker):
+    def test_find_geolocation_raises_location_not_found(self, mocker: mock.patch) -> None:
         """
         Testing find_geolocation raises a LocationNotFound exception
         when the geolocation api is unable to find location given.
@@ -82,7 +91,19 @@ class UtilsFindGeoTestCase(TestCase):
         mocker.return_value.status_code = 200
         mocker.return_value.json.return_value = failed_geo_response
 
-        self.assertRaises(LocationNotFound, find_geolocation, "70447")
+        self.assertRaises(LocationNotFound, find_geolocation, "70888")
+
+    def test_find_geolocation_raises_http_error(self, mocker: mock.patch) -> None:
+        """
+        Testing that find_geolocation raises an HTTPError when a
+        failed http response occurs.
+        """
+        mocked_error = _mock_error_response(
+            status=404, raise_for_status=HTTPError("FAILED")
+        )
+        mocker.return_value = mocked_error
+
+        self.assertRaises(HTTPError, find_geolocation, "70447")
 
 
 @mock.patch("requests.get", autospec=True)
@@ -94,9 +115,14 @@ class UtilsFindWeatherTestCase(TestCase):
     ]
 
     def setUp(self):
-        ttl_cache.clear()
+        ttl_cache.clear()  # Clear any cached results
 
-    def test_find_current_weather_and_ttl_cache(self, mocker):
+    def test_find_current_weather_and_ttl_cache(self, mocker: mock.patch) -> None:
+        """
+        Testing ttl_cache is only making requests hit the weather
+        api on new results that aren't cached and find_current_weather
+        is returning the correct dictionary of results back.
+        """
         mocker.return_value.status_code = 200
         mocker.return_value.json.return_value = weather_response
         for param in self.weather_parameters:
@@ -106,7 +132,23 @@ class UtilsFindWeatherTestCase(TestCase):
         self.assertEqual(weather, weather_response)
         self.assertTrue(mocker.return_value.raise_for_status.called)
 
+    def test_find_geolocation_raises_http_error(self, mocker: mock.patch) -> None:
+        """
+        Testing that find_current_weather raises an HTTPError
+        when a failed http response occurs.
+        """
+        mocked_error = _mock_error_response(
+            status=404, raise_for_status=HTTPError("FAILED")
+        )
+        mocker.return_value = mocked_error
+
+        self.assertRaises(HTTPError, find_current_weather, "37.8267,-122.4233")
+
 
 class UtilsErrorsTestCase(TestCase):
-    def test_location_not_found_error(self):
+    def test_location_not_found_error(self) -> None:
+        """
+        Testing that LocationNotFound exception is a subclass of
+        RequestException.
+        """
         self.assertTrue(issubclass(LocationNotFound, RequestException))
