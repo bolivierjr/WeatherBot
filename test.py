@@ -29,37 +29,20 @@
 ###
 
 from unittest import TestCase, mock
-from supybot.test import *
-from .utils.helpers import find_geolocation
+from supybot.test import PluginTestCase
+from requests import RequestException
 from .utils.errors import LocationNotFound
+from .utils.helpers import lru_cache, ttl_cache
+from .utils.helpers import find_geolocation, find_current_weather
+from .test_responses import geo_response, failed_geo_response, weather_response
 
 
 class WeatherBotTestCase(PluginTestCase):
     plugins = ("WeatherBot",)
 
 
-class UtilsHelpersTestCase(TestCase):
-    geo_response = {
-        "location": {
-            "name": "New York",
-            "country": "United States of America",
-            "region": "New York",
-            "lat": "40.714",
-            "lon": "-74.006",
-            "timezone_id": "America/New_York",
-            "localtime": "2019-12-21 17:28",
-            "localtime_epoch": 1576949280,
-            "utc_offset": "-5.0",
-        }
-    }
-    failed_geo_response = {
-        "success": False,
-        "error": {
-            "code": 615,
-            "type": "request_failed",
-            "info": "Your API request failed. Please try again or contact support.",
-        },
-    }
+@mock.patch("requests.get", autospec=True)
+class UtilsFindGeoTestCase(TestCase):
     geo_parameters = [
         "New York, NY",
         "70447",
@@ -68,7 +51,9 @@ class UtilsHelpersTestCase(TestCase):
         "New York, NY",
     ]
 
-    @mock.patch("requests.get", autospec=True)
+    def setUp(self):
+        lru_cache.clear()  # Clear any cached results
+
     def test_find_geolocation_and_lru_cache(self, mocker):
         """
         Testing lru_cache is only making requests hit the geolocation
@@ -76,7 +61,7 @@ class UtilsHelpersTestCase(TestCase):
         is returning the correct dictionary of results back.
         """
         mocker.return_value.status_code = 200
-        mocker.return_value.json.return_value = self.geo_response
+        mocker.return_value.json.return_value = geo_response
         for param in self.geo_parameters:
             geolocation = find_geolocation(param)
 
@@ -89,13 +74,39 @@ class UtilsHelpersTestCase(TestCase):
         self.assertEqual(geolocation, expected)
         self.assertTrue(mocker.return_value.raise_for_status.called)
 
-    @mock.patch("requests.get", autospec=True)
-    def test_find_geolocation_raises_exception(self, mocker):
+    def test_find_geolocation_raises_location_not_found(self, mocker):
         """
         Testing find_geolocation raises a LocationNotFound exception
         when the geolocation api is unable to find location given.
         """
         mocker.return_value.status_code = 200
-        mocker.return_value.json.return_value = self.failed_geo_response
+        mocker.return_value.json.return_value = failed_geo_response
 
-        self.assertRaises(LocationNotFound, find_geolocation, "70888")
+        self.assertRaises(LocationNotFound, find_geolocation, "70447")
+
+
+@mock.patch("requests.get", autospec=True)
+class UtilsFindWeatherTestCase(TestCase):
+    weather_parameters = [
+        "37.8267,-122.4233",
+        "40.714,-74.006",
+        "37.8267,-122.4233",
+    ]
+
+    def setUp(self):
+        ttl_cache.clear()
+
+    def test_find_current_weather_and_ttl_cache(self, mocker):
+        mocker.return_value.status_code = 200
+        mocker.return_value.json.return_value = weather_response
+        for param in self.weather_parameters:
+            weather = find_current_weather(param)
+
+        self.assertEqual(mocker.call_count, 2)
+        self.assertEqual(weather, weather_response)
+        self.assertTrue(mocker.return_value.raise_for_status.called)
+
+
+class UtilsErrorsTestCase(TestCase):
+    def test_location_not_found_error(self):
+        self.assertTrue(issubclass(LocationNotFound, RequestException))

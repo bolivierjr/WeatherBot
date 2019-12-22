@@ -29,7 +29,7 @@
 ###
 
 """
-APIXUWeather: A weather script that uses APIXU's api.
+WeatherBot: A weather script that uses APIXU's api.
 """
 
 import sys
@@ -41,14 +41,14 @@ from supybot import world
 __version__ = "1.0"
 
 # Replace this with an appropriate author or supybot.Author instance.
-__author__ = supybot.Author('Bruce Olivier', 'bolivierjr@gmail.com')
+__author__ = supybot.Author("Bruce Olivier", "bolivierjr@gmail.com")
 
 # This is a dictionary mapping supybot.Author instances to lists of
 # contributions.
 __contributors__ = {}
 
 # This is a url where the most recent plugin package can be downloaded.
-__url__ = ''
+__url__ = ""
 
 from . import config
 from . import plugin
@@ -64,6 +64,7 @@ reload(plugin)
 # reloaded when this plugin is reloaded.  Don't forget to import them as well!
 from . import utils
 from . import models
+
 reload(utils)
 reload(models)
 

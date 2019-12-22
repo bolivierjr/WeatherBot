@@ -13,6 +13,9 @@ path: str = dirname(abspath(__file__))
 env_path: str = join(path, "..", ".env")
 load_dotenv(dotenv_path=env_path)
 
+lru_cache = LRUCache(maxsize=32)
+ttl_cache = TTLCache(maxsize=64, ttl=900)
+
 
 def check_user(nick: str) -> Union[User, None]:
     user: Union[User, None]
@@ -24,15 +27,13 @@ def check_user(nick: str) -> Union[User, None]:
     return user
 
 
-@cached(cache=LRUCache(maxsize=32))
+@cached(cache=lru_cache)
 def find_geolocation(location: str) -> Dict[str, str]:
     payload = {
         "access_key": os.getenv("WS_API_KEY"),
         "query": location,
     }
-    response = requests.get(
-        "http://api.weatherstack.com/current", params=payload
-    )
+    response = requests.get("http://api.weatherstack.com/current", params=payload)
     response.raise_for_status()
 
     res_data = response.json()
@@ -50,13 +51,12 @@ def find_geolocation(location: str) -> Dict[str, str]:
     return {"location": name, "region": region, "coordinates": coordinates}
 
 
-@cached(cache=TTLCache(maxsize=32, ttl=900))
+@cached(cache=ttl_cache)
 def find_current_weather(coordinates: str) -> Dict[str, Union[str, float]]:
     darksky_key: str = os.getenv("DS_API_KEY")
     payload = {"exclude": "minutely,hourly,flags"}
     response = requests.get(
-        f"https://api.darksky.net/forecast/{darksky_key}/{coordinates}",
-        params=payload,
+        f"https://api.darksky.net/forecast/{darksky_key}/{coordinates}", params=payload,
     )
     response.raise_for_status()
 

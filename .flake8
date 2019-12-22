@@ -1,0 +1,4 @@
+[flake8]
+exclude=./__init__.py,config.py,__pycache__,.git*,venv/
+max-line-length = 90
+max-complexity = 10
