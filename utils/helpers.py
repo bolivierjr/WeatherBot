@@ -69,7 +69,6 @@ def find_current_weather(coordinates: str) -> Dict[str, Union[str, float]]:
 def display_format(
     location: str, region: str, data: Dict[str, Union[str, float]]
 ) -> str:
-
     current = data.get("currently")
     temp = current.get("temperature")
     feels = current.get("apparentTemperature")
@@ -81,12 +80,39 @@ def display_format(
     feels_like = f"{feels:.1f}F/{(feels - 32)/1.8:.1f}C"
     humidity = f"{current.get('humidity') * 100:.1f}"
     wind = f"{wind_spd:.1f}mph/{wind_spd * 1.609344:.1f}kph"
-    wind_dir = current.get("windBearing")
+    wind_dir = _format_directions(current.get("windBearing"))
 
     display = (
         f"\x02{place}\x02 :: {condition} {temperature} "
         f"(Humidity: {humidity}%) | \x02Feels like:\x02 {feels_like} "
-        f"| \x02Wind\x02: {wind} {wind_dir} "
+        f"| \x02Wind\x02: {wind_dir} at {wind}"
     )
 
     return display
+
+
+def _format_directions(degrees: int) -> str:
+    if not degrees:
+        return "N/A"
+
+    directions = [
+        "N",
+        "NNE",
+        "NE",
+        "ENE",
+        "E",
+        "ESE",
+        "SE",
+        "SSE",
+        "S",
+        "SSW",
+        "SW",
+        "WSW",
+        "W",
+        "WNW",
+        "NW",
+        "NNW",
+    ]
+    formula = round(degrees / (360.0 / len(directions)))
+
+    return directions[formula % len(directions)]
