@@ -2,12 +2,7 @@ from datetime import datetime
 from supybot import log
 from os.path import dirname, abspath, join, isfile
 from marshmallow import Schema, fields, validates, ValidationError
-from peewee import (
-    SqliteDatabase,
-    CharField,
-    DateTimeField,
-    Model,
-)
+from peewee import SqliteDatabase, CharField, DateTimeField, Model
 
 
 path: str = dirname(abspath(__file__))

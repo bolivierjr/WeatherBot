@@ -33,7 +33,10 @@ class WeatherBot(callbacks.Plugin):
     threaded = True
 
     def createdb(
-        self, irc: callbacks.NestedCommandsIrcProxy, msg: ircmsgs.IrcMsg, args: List[str],
+        self,
+        irc: callbacks.NestedCommandsIrcProxy,
+        msg: ircmsgs.IrcMsg,
+        args: List[str],
     ) -> None:
         """- takes no arguments.
         Creates a new user table.
@@ -45,7 +48,8 @@ class WeatherBot(callbacks.Plugin):
         except DatabaseError as exc:
             log.error(str(exc))
             irc.reply(
-                "There was an error with the database. Check logs.", prefixNick=False,
+                "There was an error with the database. Check logs.",
+                prefixNick=False,
             )
 
     createdb = wrap(createdb, ["owner"])
@@ -66,7 +70,9 @@ class WeatherBot(callbacks.Plugin):
             user: Union[User, None] = check_user(msg.nick)
 
             if not text and not user:
-                irc.reply(f"No weather location set by {msg.nick}", prefixNick=False)
+                irc.reply(
+                    f"No weather location set by {msg.nick}", prefixNick=False
+                )
 
             elif user and not text:
                 weather = find_current_weather(user.coordinates)
@@ -114,7 +120,9 @@ class WeatherBot(callbacks.Plugin):
             deserialized_location: Dict[str, str] = UserSchema().load(
                 {"location": html.escape(text)}, partial=True
             )
-            geo: Dict[str, str] = find_geolocation(deserialized_location["location"])
+            geo: Dict[str, str] = find_geolocation(
+                deserialized_location["location"]
+            )
             geo.update({"nick": msg.nick, "host": f"{msg.user}@{msg.host}"})
             user_schema: Dict[str, str] = UserSchema().load(geo)
             user: Union[User, None] = check_user(msg.nick)

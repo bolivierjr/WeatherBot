@@ -28,6 +28,7 @@
 
 ###
 
+from peewee import SqliteDatabase, DatabaseError
 from unittest import TestCase, mock
 from supybot.test import PluginTestCase
 from requests import RequestException, HTTPError
@@ -35,15 +36,18 @@ from .utils.errors import LocationNotFound
 from .utils.helpers import lru_cache, ttl_cache
 from .utils.helpers import find_geolocation, find_current_weather
 from .test_responses import geo_response, failed_geo_response, weather_response
+from .models.users import User, UserSchema
 
 
-def _mock_error_response(status: int, raise_for_status: RequestException) -> mock.Mock:
-    mock_response = mock.Mock()
-    mock_response.raise_for_status = mock.Mock()
-    mock_response.raise_for_status.side_effect = raise_for_status
-    mock_response.status_code = status
+def _mock_error_response(
+    status: int, raise_for_status: RequestException
+) -> mock.Mock:
+    mock_error = mock.Mock()
+    mock_error.raise_for_status = mock.Mock()
+    mock_error.raise_for_status.side_effect = raise_for_status
+    mock_error.status_code = status
 
-    return mock_response
+    return mock_error
 
 
 class WeatherBotTestCase(PluginTestCase):
@@ -83,7 +87,9 @@ class UtilsFindGeoTestCase(TestCase):
         self.assertEqual(geolocation, expected)
         self.assertTrue(mocker.return_value.raise_for_status.called)
 
-    def test_find_geolocation_raises_location_not_found(self, mocker: mock.patch) -> None:
+    def test_find_geolocation_raises_location_not_found(
+        self, mocker: mock.patch
+    ) -> None:
         """
         Testing find_geolocation raises a LocationNotFound exception
         when the geolocation api is unable to find location given.
@@ -93,7 +99,9 @@ class UtilsFindGeoTestCase(TestCase):
 
         self.assertRaises(LocationNotFound, find_geolocation, "70888")
 
-    def test_find_geolocation_raises_http_error(self, mocker: mock.patch) -> None:
+    def test_find_geolocation_raises_http_error(
+        self, mocker: mock.patch
+    ) -> None:
         """
         Testing that find_geolocation raises an HTTPError when a
         failed http response occurs.
@@ -117,7 +125,9 @@ class UtilsFindWeatherTestCase(TestCase):
     def setUp(self):
         ttl_cache.clear()  # Clear any cached results
 
-    def test_find_current_weather_and_ttl_cache(self, mocker: mock.patch) -> None:
+    def test_find_current_weather_and_ttl_cache(
+        self, mocker: mock.patch
+    ) -> None:
         """
         Testing ttl_cache is only making requests hit the weather
         api on new results that aren't cached and find_current_weather
@@ -132,7 +142,9 @@ class UtilsFindWeatherTestCase(TestCase):
         self.assertEqual(weather, weather_response)
         self.assertTrue(mocker.return_value.raise_for_status.called)
 
-    def test_find_geolocation_raises_http_error(self, mocker: mock.patch) -> None:
+    def test_find_geolocation_raises_http_error(
+        self, mocker: mock.patch
+    ) -> None:
         """
         Testing that find_current_weather raises an HTTPError
         when a failed http response occurs.
@@ -152,3 +164,47 @@ class UtilsErrorsTestCase(TestCase):
         RequestException.
         """
         self.assertTrue(issubclass(LocationNotFound, RequestException))
+
+
+# Sqlite3 test database
+test_db = SqliteDatabase(":memory:")
+
+
+class UserModelTestCase(TestCase):
+    def setUp(self):
+        test_db.connect()
+        test_db.create_tables([User])
+        User.create(
+            nick="Johnno",
+            host="test@test.com",
+            location="New Orleans",
+            region="Louisiana",
+            coordinates="29.974,-90.087",
+        )
+
+    def tearDown(self):
+        test_db.drop_tables([User])
+        test_db.close()
+
+    def test_user_model(self) -> None:
+        test_user = User.get(User.nick == "Johnno")
+
+        self.assertEqual(test_user.id, 1)
+        self.assertEqual(test_user.nick, "Johnno")
+        self.assertEqual(test_user.host, "test@test.com")
+        self.assertEqual(test_user.location, "New Orleans")
+        self.assertEqual(test_user.region, "Louisiana")
+        self.assertEqual(test_user.coordinates, "29.974,-90.087")
+        self.assertIsNotNone(test_user.created_at)
+
+    def test_user_model_nick_unique(self) -> None:
+        user = User(
+            nick="Johnno",
+            host="test@test.com",
+            location="Covington",
+            region="Louisiana",
+            coordinates="29.974,-91.087",
+        )
+
+        with self.assertRaises(DatabaseError):
+            user.save()
