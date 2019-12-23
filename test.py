@@ -180,6 +180,7 @@ class UserModelTestCase(TestCase):
             location="New Orleans",
             region="Louisiana",
             coordinates="29.974,-90.087",
+            format="f/c",
         )
 
     def tearDown(self):
@@ -195,7 +196,9 @@ class UserModelTestCase(TestCase):
         self.assertEqual(test_user.location, "New Orleans")
         self.assertEqual(test_user.region, "Louisiana")
         self.assertEqual(test_user.coordinates, "29.974,-90.087")
+        self.assertEqual(test_user.format, "f/c")
         self.assertIsNotNone(test_user.created_at)
+        self.assertEqual(test_user, "<User Johnno>")
 
     def test_user_model_nick_unique(self) -> None:
         user = User(
@@ -204,6 +207,7 @@ class UserModelTestCase(TestCase):
             location="Covington",
             region="Louisiana",
             coordinates="29.974,-91.087",
+            format="f/c",
         )
 
         with self.assertRaises(DatabaseError):

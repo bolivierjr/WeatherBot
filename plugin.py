@@ -11,7 +11,12 @@ from requests import RequestException
 from marshmallow import ValidationError
 from .utils.errors import LocationNotFound
 from .models.users import User, UserSchema
-from .utils.helpers import check_user, find_geolocation, find_current_weather
+from .utils.helpers import (
+    check_user,
+    find_geolocation,
+    find_current_weather,
+    display_format,
+)
 from supybot import utils, plugins, ircutils, callbacks, ircmsgs, log
 from supybot.commands import wrap, optional, getopts
 
@@ -66,7 +71,8 @@ class WeatherBot(callbacks.Plugin):
         """
         try:
             geo: Dict[str, str]
-            weather: Union[Dict[str, str], None] = None
+            weather: Dict[str, Union[str, float]]
+            display: str
             user: Union[User, None] = check_user(msg.nick)
 
             if not text and not user:
@@ -76,6 +82,8 @@ class WeatherBot(callbacks.Plugin):
 
             elif user and not text:
                 weather = find_current_weather(user.coordinates)
+                display = display_format(user.location, user.region, weather)
+                irc.reply(display, prefixNick=False)
 
             else:
                 deserialized_location: Dict[str, str] = UserSchema().load(
@@ -83,9 +91,10 @@ class WeatherBot(callbacks.Plugin):
                 )
                 geo = find_geolocation(deserialized_location["location"])
                 weather = find_current_weather(geo["coordinates"])
-
-            if weather:
-                irc.reply(f"{weather}", prefixNick=False)
+                display = display_format(
+                    geo["location"], geo["region"], weather
+                )
+                irc.reply(display, prefixNick=False)
 
         except ValidationError as exc:
             if "location" in exc.messages:
@@ -102,7 +111,12 @@ class WeatherBot(callbacks.Plugin):
 
         except RequestException as exc:
             log.error(str(exc), exc_info=True)
-            irc.reply("There was an error. Contact admin.", prefixNick=False)
+            if exc.response.status_code == 400:
+                irc.reply("Unable to find this location.", prefixNick=False)
+            else:
+                irc.reply(
+                    "There is an error. Contact admin.", prefixNick=False
+                )
 
     wz = wrap(wz, [optional("text")])
 
@@ -124,6 +138,9 @@ class WeatherBot(callbacks.Plugin):
                 deserialized_location["location"]
             )
             geo.update({"nick": msg.nick, "host": f"{msg.user}@{msg.host}"})
+            if geo["location"] is None:
+                raise LocationNotFound("Unable to find this location.")
+
             user_schema: Dict[str, str] = UserSchema().load(geo)
             user: Union[User, None] = check_user(msg.nick)
 
@@ -137,7 +154,7 @@ class WeatherBot(callbacks.Plugin):
                 new_user = User(**user_schema)
                 new_user.save()
 
-            log.info(f"{msg.nick} set it his location to {text}")
+            log.info(f"{msg.nick} set their location to {text}")
             irc.reply(
                 f"{msg.nick} has set location to {text}", prefixNick=False,
             )

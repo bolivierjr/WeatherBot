@@ -64,3 +64,29 @@ def find_current_weather(coordinates: str) -> Dict[str, Union[str, float]]:
     response.raise_for_status()
 
     return response.json()
+
+
+def display_format(
+    location: str, region: str, data: Dict[str, Union[str, float]]
+) -> str:
+
+    current = data.get("currently")
+    temp = current.get("temperature")
+    feels = current.get("apparentTemperature")
+    wind_spd = current.get("windSpeed")
+
+    place = f"{location}, {region}"
+    condition = current.get("summary", "N/A")
+    temperature = f"{temp:.1f}F/{(temp - 32)/1.8:.1f}C"
+    feels_like = f"{feels:.1f}F/{(feels - 32)/1.8:.1f}C"
+    humidity = f"{current.get('humidity') * 100:.1f}"
+    wind = f"{wind_spd:.1f}mph/{wind_spd * 1.609344:.1f}kph"
+    wind_dir = current.get("windBearing")
+
+    display = (
+        f"\x02{place}\x02 :: {condition} {temperature} "
+        f"(Humidity: {humidity}%) | \x02Feels like:\x02 {feels_like} "
+        f"| \x02Wind\x02: {wind} {wind_dir} "
+    )
+
+    return display
