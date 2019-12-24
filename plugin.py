@@ -18,7 +18,7 @@ from .utils.helpers import (
     display_format,
 )
 from supybot import utils, plugins, ircutils, callbacks, ircmsgs, log
-from supybot.commands import wrap, optional, getopts
+from supybot.commands import wrap, optional
 
 try:
     from supybot.i18n import PluginInternationalization
@@ -82,7 +82,9 @@ class WeatherBot(callbacks.Plugin):
 
             elif user and not text:
                 weather = find_current_weather(user.coordinates)
-                display = display_format(user.location, user.region, weather)
+                display = display_format(
+                    user.location, user.region, weather, user.format
+                )
                 irc.reply(display, prefixNick=False)
 
             else:
@@ -92,14 +94,17 @@ class WeatherBot(callbacks.Plugin):
                 geo = find_geolocation(deserialized_location["location"])
                 weather = find_current_weather(geo["coordinates"])
                 display = display_format(
-                    geo["location"], geo["region"], weather
+                    geo["location"],
+                    geo["region"],
+                    weather,
+                    user.format if user else 1,
                 )
                 irc.reply(display, prefixNick=False)
 
         except ValidationError as exc:
             if "location" in exc.messages:
                 message = exc.messages["location"][0]
-                irc.reply(message, prefixNick=False)
+            irc.reply(message, prefixNick=False)
             log.error(str(exc), exc_info=True)
 
         except DatabaseError as exc:
@@ -125,19 +130,35 @@ class WeatherBot(callbacks.Plugin):
         irc: callbacks.NestedCommandsIrcProxy,
         msg: ircmsgs.IrcMsg,
         args: List[str],
+        num: int,
         text: str,
     ) -> None:
-        """<location>
+        """<display_format> <location>
         Sets the weather location for a user.
+        Format number is set to 1 for imperial, and 2 for metric, for which
+        units to display first. Imperial units first is default.
+        e.g. setweather 2 70118
         """
         try:
+            format_error = {
+                "format": ["Must enter in an integer for the display format."]
+            }
+            if not isinstance(num, int):
+                raise ValidationError(format_error)
+
             deserialized_location: Dict[str, str] = UserSchema().load(
-                {"location": html.escape(text)}, partial=True
+                {"location": html.escape(text), "format": num}, partial=True,
             )
             geo: Dict[str, str] = find_geolocation(
                 deserialized_location["location"]
             )
-            geo.update({"nick": msg.nick, "host": f"{msg.user}@{msg.host}"})
+            geo.update(
+                {
+                    "nick": msg.nick,
+                    "host": f"{msg.user}@{msg.host}",
+                    "format": num,
+                }
+            )
             if geo["location"] is None:
                 raise LocationNotFound("Unable to find this location.")
 
@@ -146,6 +167,7 @@ class WeatherBot(callbacks.Plugin):
 
             if user:
                 user.host = user_schema["host"]
+                user.format = user_schema["format"]
                 user.location = user_schema["location"]
                 user.region = user_schema["region"]
                 user.coordinates = user_schema["coordinates"]
@@ -154,14 +176,19 @@ class WeatherBot(callbacks.Plugin):
                 new_user = User(**user_schema)
                 new_user.save()
 
+            units = "imperial" if num == 1 else "metric"
             log.info(f"{msg.nick} set their location to {text}")
             irc.reply(
-                f"{msg.nick} has set location to {text}", prefixNick=False,
+                f"{msg.nick} set their weather to {units} first and {text}.",
+                prefixNick=False,
             )
 
         except ValidationError as exc:
             if "location" in exc.messages:
                 message = exc.messages["location"][0]
+                irc.reply(message, prefixNick=False)
+            elif "format" in exc.messages:
+                message = exc.messages["format"][0]
                 irc.reply(message, prefixNick=False)
             log.error(str(exc), exc_info=True)
 
@@ -176,7 +203,7 @@ class WeatherBot(callbacks.Plugin):
             log.error(str(exc), exc_info=True)
             irc.reply("Unable to find this location.", prefixNick=False)
 
-    setweather = wrap(setweather, ["text"])
+    setweather = wrap(setweather, [optional("int"), "text"])
 
 
 Class = WeatherBot

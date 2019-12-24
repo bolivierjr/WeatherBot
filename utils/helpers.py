@@ -39,6 +39,7 @@ def find_geolocation(location: str) -> Dict[str, str]:
     response.raise_for_status()
 
     res_data = response.json()
+    log.error(str(res_data))
     if response.status_code == 200 and "error" in res_data:
         log.error(f"geolocation: {res_data['error']['info']}")
         raise LocationNotFound("Unable to find this location.")
@@ -93,7 +94,7 @@ def display_format(
         low = f"{forecast_low}F/{(forecast_low - 32)/1.8:.1f}C"
         wind: str = f"{wind_spd:.1f}mph/{wind_spd * 1.609344:.1f}kph"
     else:
-        temperature: str = f"{(temp - 32)/1.8:.1f}/C{temp:.1f}F"
+        temperature: str = f"{(temp - 32)/1.8:.1f}C/{temp:.1f}F"
         feels_like: str = f"{(feels - 32)/1.8:.1f}C/{feels:.1f}F"
         high = f"{(forecast_high - 32)/1.8:.1f}C/{forecast_high}F"
         low = f"{(forecast_low - 32)/1.8:.1f}C/{forecast_low}F"
@@ -102,7 +103,7 @@ def display_format(
     place: str = f"{location}, {region}"
     condition: str = current.get("summary", "N/A")
     humidity: str = f"{int(current.get('humidity') * 100)}"
-    wind_dir: str = _format_directions(current.get("windBearing"))
+    wind_dir: str = format_directions(current.get("windBearing"))
     summary = forecast[0].get("summary", "N/A")
 
     display: str = (
@@ -114,7 +115,7 @@ def display_format(
     return display
 
 
-def _format_directions(degrees: float) -> str:
+def format_directions(degrees: float) -> str:
     if not degrees:
         return "N/A"
 

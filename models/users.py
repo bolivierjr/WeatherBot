@@ -2,7 +2,13 @@ from datetime import datetime
 from supybot import log
 from os.path import dirname, abspath, join, isfile
 from marshmallow import Schema, fields, validates, ValidationError
-from peewee import SqliteDatabase, CharField, DateTimeField, Model
+from peewee import (
+    SqliteDatabase,
+    CharField,
+    DateTimeField,
+    Model,
+    IntegerField,
+)
 
 
 path: str = dirname(abspath(__file__))
@@ -13,6 +19,7 @@ db = SqliteDatabase(db_path)
 class User(Model):
     nick = CharField(unique=True, max_length=15, null=False)
     host = CharField(max_length=255, null=False)
+    format = IntegerField(null=False)
     location = CharField(max_length=80, null=False)
     region = CharField(max_length=80, null=False)
     coordinates = CharField(max_length=20, null=False)
@@ -38,6 +45,7 @@ class UserSchema(Schema):
     id = fields.Integer()
     nick = fields.String(required=True)
     host = fields.String(required=True)
+    format = fields.Integer(required=True)
     location = fields.String(required=True)
     region = fields.String(required=True)
     coordinates = fields.String(required=True)
@@ -46,3 +54,12 @@ class UserSchema(Schema):
     def validate_location(self, data, **kwargs):
         if len(data) > 80:
             raise ValidationError("location is too long.")
+
+    @validates("format")
+    def validate_format(self, data, **kwargs):
+        if data == 1 or data == 2:
+            return
+        raise ValidationError(
+            "Format setting must be set to 1 for "
+            "imperial or 2 for metric units first."
+        )

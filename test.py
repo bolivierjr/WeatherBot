@@ -28,11 +28,11 @@
 
 ###
 
+from unittest import mock
 from peewee import SqliteDatabase, DatabaseError
-from unittest import TestCase, mock
-from supybot.test import PluginTestCase
+from supybot.test import PluginTestCase, SupyTestCase
 from requests import RequestException, HTTPError
-from .utils.errors import LocationNotFound
+from .utils.errors import LocationNotFound, WeatherNotFound
 from .utils.helpers import lru_cache, ttl_cache
 from .utils.helpers import find_geolocation, find_current_weather
 from .test_responses import geo_response, failed_geo_response, weather_response
@@ -55,7 +55,7 @@ class WeatherBotTestCase(PluginTestCase):
 
 
 @mock.patch("requests.get", autospec=True)
-class UtilsFindGeoTestCase(TestCase):
+class UtilsFindGeoTestCase(SupyTestCase):
     geo_parameters = [
         "New York, NY",
         "70447",
@@ -65,6 +65,7 @@ class UtilsFindGeoTestCase(TestCase):
     ]
 
     def setUp(self) -> None:
+        SupyTestCase.setUp(self)
         lru_cache.clear()  # Clear any cached results
 
     def test_find_geolocation_and_lru_cache(self, mocker: mock.patch) -> None:
@@ -115,7 +116,7 @@ class UtilsFindGeoTestCase(TestCase):
 
 
 @mock.patch("requests.get", autospec=True)
-class UtilsFindWeatherTestCase(TestCase):
+class UtilsFindWeatherTestCase(SupyTestCase):
     weather_parameters = [
         "37.8267,-122.4233",
         "40.714,-74.006",
@@ -123,6 +124,7 @@ class UtilsFindWeatherTestCase(TestCase):
     ]
 
     def setUp(self):
+        SupyTestCase.setUp(self)
         ttl_cache.clear()  # Clear any cached results
 
     def test_find_current_weather_and_ttl_cache(
@@ -157,7 +159,7 @@ class UtilsFindWeatherTestCase(TestCase):
         self.assertRaises(HTTPError, find_current_weather, "37.8267,-122.4233")
 
 
-class UtilsErrorsTestCase(TestCase):
+class UtilsErrorsTestCase(SupyTestCase):
     def test_location_not_found_error(self) -> None:
         """
         Testing that LocationNotFound exception is a subclass of
@@ -165,13 +167,21 @@ class UtilsErrorsTestCase(TestCase):
         """
         self.assertTrue(issubclass(LocationNotFound, RequestException))
 
+    def test_weather_not_found_error(self) -> None:
+        """
+        Testing that WeatherNotFound exception is a subclass of
+        RequestException.
+        """
+        self.assertTrue(issubclass(WeatherNotFound, RequestException))
+
 
 # Sqlite3 test database
 test_db = SqliteDatabase(":memory:")
 
 
-class UserModelTestCase(TestCase):
+class UserModelTestCase(SupyTestCase):
     def setUp(self):
+        SupyTestCase.setUp(self)
         test_db.connect()
         test_db.create_tables([User])
         User.create(
@@ -180,12 +190,13 @@ class UserModelTestCase(TestCase):
             location="New Orleans",
             region="Louisiana",
             coordinates="29.974,-90.087",
-            format="f/c",
+            format=1,
         )
 
     def tearDown(self):
         test_db.drop_tables([User])
         test_db.close()
+        SupyTestCase.tearDown(self)
 
     def test_user_model(self) -> None:
         test_user = User.get(User.nick == "Johnno")
@@ -196,7 +207,7 @@ class UserModelTestCase(TestCase):
         self.assertEqual(test_user.location, "New Orleans")
         self.assertEqual(test_user.region, "Louisiana")
         self.assertEqual(test_user.coordinates, "29.974,-90.087")
-        self.assertEqual(test_user.format, "f/c")
+        self.assertEqual(test_user.format, 1)
         self.assertIsNotNone(test_user.created_at)
         self.assertEqual(test_user, "<User Johnno>")
 
@@ -207,7 +218,7 @@ class UserModelTestCase(TestCase):
             location="Covington",
             region="Louisiana",
             coordinates="29.974,-91.087",
-            format="f/c",
+            format=1,
         )
 
         with self.assertRaises(DatabaseError):
