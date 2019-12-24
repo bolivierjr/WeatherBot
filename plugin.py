@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2018, Bruce Olivier
+# Copyright (c) 2019, Bruce Olivier
 # All rights reserved.
 
 import html
 from peewee import DatabaseError
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Any
 from requests import RequestException
 from marshmallow import ValidationError
-from .utils.errors import LocationNotFound
+from .utils.errors import LocationNotFound, WeatherNotFound
 from .models.users import User, UserSchema
 from .utils.helpers import (
     check_user,
@@ -71,7 +71,7 @@ class WeatherBot(callbacks.Plugin):
         """
         try:
             geo: Dict[str, str]
-            weather: Dict[str, Union[str, float]]
+            weather: Dict[str, Any]
             display: str
             user: Union[User, None] = check_user(msg.nick)
 
@@ -106,7 +106,7 @@ class WeatherBot(callbacks.Plugin):
             log.error(str(exc), exc_info=True)
             irc.reply("There is an error. Contact admin.", prefixNick=False)
 
-        except LocationNotFound as exc:
+        except (LocationNotFound, WeatherNotFound) as exc:
             irc.reply(str(exc), prefixNick=False)
 
         except RequestException as exc:

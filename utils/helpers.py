@@ -2,9 +2,9 @@ import os
 import requests
 from supybot import log
 from dotenv import load_dotenv
-from typing import Union, Dict
+from typing import Union, Dict, List, Any
 from ..models.users import User
-from .errors import LocationNotFound
+from .errors import LocationNotFound, WeatherNotFound
 from os.path import dirname, abspath, join
 from cachetools import cached, LRUCache, TTLCache
 
@@ -54,7 +54,7 @@ def find_geolocation(location: str) -> Dict[str, str]:
 
 
 @cached(cache=ttl_cache)
-def find_current_weather(coordinates: str) -> Dict[str, Union[str, float]]:
+def find_current_weather(coordinates: str) -> Dict[str, Any]:
     darksky_key: str = os.getenv("DS_API_KEY")
     payload = {"exclude": "minutely,hourly,flags"}
     response = requests.get(
@@ -67,31 +67,54 @@ def find_current_weather(coordinates: str) -> Dict[str, Union[str, float]]:
 
 
 def display_format(
-    location: str, region: str, data: Dict[str, Union[str, float]]
+    location: str, region: str, data: Dict[str, Any], format: int = 1
 ) -> str:
-    current = data.get("currently")
-    temp = current.get("temperature")
-    feels = current.get("apparentTemperature")
-    wind_spd = current.get("windSpeed")
+    current: Dict[Union[str, float]] = data.get("currently")
+    forecast: Dict[str, List[Dict]] = data.get("daily", {}).get("data")
 
-    place = f"{location}, {region}"
-    condition = current.get("summary", "N/A")
-    temperature = f"{temp:.1f}F/{(temp - 32)/1.8:.1f}C"
-    feels_like = f"{feels:.1f}F/{(feels - 32)/1.8:.1f}C"
-    humidity = f"{current.get('humidity') * 100:.1f}"
-    wind = f"{wind_spd:.1f}mph/{wind_spd * 1.609344:.1f}kph"
-    wind_dir = _format_directions(current.get("windBearing"))
+    if not current or not forecast:
+        log.error(
+            "JSON data does not have current or forecast keys", exc_info=True
+        )
+        raise WeatherNotFound("Unable to find the weather at this time.")
 
-    display = (
-        f"\x02{place}\x02 :: {condition} {temperature} "
-        f"(Humidity: {humidity}%) | \x02Feels like:\x02 {feels_like} "
-        f"| \x02Wind\x02: {wind_dir} at {wind}"
+    temp: float = current.get("temperature")
+    feels: float = current.get("apparentTemperature")
+    wind_spd: float = current.get("windSpeed")
+    forecast_high = forecast[0].get("temperatureHigh")
+    forecast_low = forecast[0].get("temperatureLow")
+
+    # Format to display imperial or metric units first.
+    # e.g. 1 = imperial, 2 = metric, default is imperial.
+    if format == 1:
+        temperature: str = f"{temp:.1f}F/{(temp - 32)/1.8:.1f}C"
+        feels_like: str = f"{feels:.1f}F/{(feels - 32)/1.8:.1f}C"
+        high = f"{forecast_high}F/{(forecast_high - 32)/1.8:.1f}C"
+        low = f"{forecast_low}F/{(forecast_low - 32)/1.8:.1f}C"
+        wind: str = f"{wind_spd:.1f}mph/{wind_spd * 1.609344:.1f}kph"
+    else:
+        temperature: str = f"{(temp - 32)/1.8:.1f}/C{temp:.1f}F"
+        feels_like: str = f"{(feels - 32)/1.8:.1f}C/{feels:.1f}F"
+        high = f"{(forecast_high - 32)/1.8:.1f}C/{forecast_high}F"
+        low = f"{(forecast_low - 32)/1.8:.1f}C/{forecast_low}F"
+        wind: str = f"{wind_spd * 1.609344:.1f}kph/{wind_spd:.1f}mph"
+
+    place: str = f"{location}, {region}"
+    condition: str = current.get("summary", "N/A")
+    humidity: str = f"{int(current.get('humidity') * 100)}"
+    wind_dir: str = _format_directions(current.get("windBearing"))
+    summary = forecast[0].get("summary", "N/A")
+
+    display: str = (
+        f"\x02{place}\x02 :: {condition} {temperature} (Humidity: {humidity}%)"
+        f" | \x02Feels like:\x02 {feels_like} | \x02Wind\x02: {wind_dir} at "
+        f"{wind} | \x02Today:\x02 {summary} High {high} - Low {low}"
     )
 
     return display
 
 
-def _format_directions(degrees: int) -> str:
+def _format_directions(degrees: float) -> str:
     if not degrees:
         return "N/A"
 
@@ -113,6 +136,6 @@ def _format_directions(degrees: int) -> str:
         "NW",
         "NNW",
     ]
-    formula = round(degrees / (360.0 / len(directions)))
+    formula = round(degrees / (360.0 / len(directions))) % len(directions)
 
-    return directions[formula % len(directions)]
+    return directions[formula]

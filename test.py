@@ -1,5 +1,5 @@
 ###
-# Copyright (c) 2018, Bruce Olivier
+# Copyright (c) 2019, Bruce Olivier
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
