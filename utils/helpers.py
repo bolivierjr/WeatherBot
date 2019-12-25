@@ -94,14 +94,14 @@ def display_format(
     if format == 1:
         temperature: str = f"{temp:.1f}F/{(temp - 32)/1.8:.1f}C"
         feels_like: str = f"{feels:.1f}F/{(feels - 32)/1.8:.1f}C"
-        high = f"{forecast_high}F/{(forecast_high - 32)/1.8:.1f}C"
-        low = f"{forecast_low}F/{(forecast_low - 32)/1.8:.1f}C"
+        high = f"{forecast_high:.1f}F/{(forecast_high - 32)/1.8:.1f}C"
+        low = f"{forecast_low:.1f}F/{(forecast_low - 32)/1.8:.1f}C"
         wind: str = f"{wind_spd:.1f}mph/{wind_spd * 1.609344:.1f}kph"
     else:
         temperature: str = f"{(temp - 32)/1.8:.1f}C/{temp:.1f}F"
         feels_like: str = f"{(feels - 32)/1.8:.1f}C/{feels:.1f}F"
-        high = f"{(forecast_high - 32)/1.8:.1f}C/{forecast_high}F"
-        low = f"{(forecast_low - 32)/1.8:.1f}C/{forecast_low}F"
+        high = f"{(forecast_high - 32)/1.8:.1f}C/{forecast_high:.1f}F"
+        low = f"{(forecast_low - 32)/1.8:.1f}C/{forecast_low:.1f}F"
         wind: str = f"{wind_spd * 1.609344:.1f}kph/{wind_spd:.1f}mph"
 
     place: str = f"{location}, {region}"
