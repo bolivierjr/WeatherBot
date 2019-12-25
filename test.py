@@ -183,6 +183,7 @@ class UserModelTestCase(SupyTestCase):
     def setUp(self):
         SupyTestCase.setUp(self)
         test_db.connect()
+        test_db.drop_tables([User])
         test_db.create_tables([User])
         User.create(
             nick="Johnno",
@@ -209,7 +210,7 @@ class UserModelTestCase(SupyTestCase):
         self.assertEqual(test_user.coordinates, "29.974,-90.087")
         self.assertEqual(test_user.format, 1)
         self.assertIsNotNone(test_user.created_at)
-        self.assertEqual(test_user, "<User Johnno>")
+        self.assertEqual(repr(test_user), "<User Johnno>")
 
     def test_user_model_nick_unique(self) -> None:
         user = User(

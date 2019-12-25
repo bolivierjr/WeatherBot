@@ -2,15 +2,17 @@ import os
 import requests
 from supybot import log
 from dotenv import load_dotenv
+from peewee import DatabaseError
 from typing import Union, Dict, List, Any
 from ..models.users import User
 from .errors import LocationNotFound, WeatherNotFound
-from os.path import dirname, abspath, join
+from os.path import dirname, abspath, join, isfile
 from cachetools import cached, LRUCache, TTLCache
 
 
 path: str = dirname(abspath(__file__))
 env_path: str = join(path, "..", ".env")
+db_path: str = join(path, "..", "data", "Weather.db")
 load_dotenv(dotenv_path=env_path)
 
 lru_cache = LRUCache(maxsize=32)
@@ -20,6 +22,8 @@ ttl_cache = TTLCache(maxsize=64, ttl=900)
 def check_user(nick: str) -> Union[User, None]:
     user: Union[User, None]
     try:
+        if not isfile(db_path):
+            raise DatabaseError("Users db and table not created yet.")
         user = User.get(User.nick == nick)
     except User.DoesNotExist:
         user = None
@@ -41,7 +45,7 @@ def find_geolocation(location: str) -> Dict[str, str]:
     res_data = response.json()
     log.error(str(res_data))
     if response.status_code == 200 and "error" in res_data:
-        log.error(f"geolocation: {res_data['error']['info']}")
+        log.error(f"geolocation: {res_data['error']['info']}", exc_info=True)
         raise LocationNotFound("Unable to find this location.")
 
     res_location: Dict[str, Union[str, float]] = res_data.get("location")

@@ -109,7 +109,12 @@ class WeatherBot(callbacks.Plugin):
 
         except DatabaseError as exc:
             log.error(str(exc), exc_info=True)
-            irc.reply("There is an error. Contact admin.", prefixNick=False)
+            if "not created" in str(exc):
+                irc.reply(str(exc), prefixNick=True)
+            else:
+                irc.reply(
+                    "There is an error. Contact admin.", prefixNick=False
+                )
 
         except (LocationNotFound, WeatherNotFound) as exc:
             irc.reply(str(exc), prefixNick=False)
@@ -136,8 +141,7 @@ class WeatherBot(callbacks.Plugin):
         """<display_format> <location>
         Sets the weather location for a user.
         Format number is set to 1 for imperial, and 2 for metric, for which
-        units to display first. Imperial units first is default.
-        e.g. setweather 2 70118
+        units to display first. e.g. setweather 2 70118
         """
         try:
             format_error = {
@@ -194,7 +198,12 @@ class WeatherBot(callbacks.Plugin):
 
         except DatabaseError as exc:
             log.error(str(exc), exc_info=True)
-            irc.reply("There was an error. Contact admin.", prefixNick=False)
+            if "not created" in str(exc):
+                irc.reply(str(exc), prefixNick=True)
+            else:
+                irc.reply(
+                    "There is an error. Contact admin.", prefixNick=False
+                )
 
         except LocationNotFound as exc:
             irc.reply(str(exc), prefixNick=False)
