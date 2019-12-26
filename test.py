@@ -52,7 +52,9 @@ from .utils.helpers import (
 )
 
 
-def _mock_error_response(status: int, raise_for_status: RequestException) -> mock.Mock:
+def _mock_error_response(
+    status: int, raise_for_status: RequestException
+) -> mock.Mock:
     mock_error = mock.Mock()
     mock_error.raise_for_status = mock.Mock()
     mock_error.raise_for_status.side_effect = raise_for_status
@@ -117,7 +119,9 @@ class UtilsFindGeoTestCase(SupyTestCase):
 
         self.assertRaises(LocationNotFound, find_geolocation, "70888")
 
-    def test_find_geolocation_raises_http_error(self, mocker: mock.patch) -> None:
+    def test_find_geolocation_raises_http_error(
+        self, mocker: mock.patch
+    ) -> None:
         """
         Testing that find_geolocation raises an HTTPError when a
         failed http response occurs.
@@ -142,7 +146,9 @@ class UtilsFindWeatherTestCase(SupyTestCase):
         SupyTestCase.setUp(self)
         ttl_cache.clear()  # Clear any cached results
 
-    def test_find_current_weather_and_ttl_cache(self, mocker: mock.patch) -> None:
+    def test_find_current_weather_and_ttl_cache(
+        self, mocker: mock.patch
+    ) -> None:
         """
         Testing ttl_cache is only making requests hit the weather
         api on new results that aren't cached and find_current_weather
@@ -157,7 +163,9 @@ class UtilsFindWeatherTestCase(SupyTestCase):
         self.assertEqual(weather, weather_response)
         self.assertTrue(mocker.return_value.raise_for_status.called)
 
-    def test_find_geolocation_raises_http_error(self, mocker: mock.patch) -> None:
+    def test_find_geolocation_raises_http_error(
+        self, mocker: mock.patch
+    ) -> None:
         """
         Testing that find_current_weather raises an HTTPError
         when a failed http response occurs.
@@ -176,7 +184,9 @@ class UtilsDisplayFormatTestCase(SupyTestCase):
         Testing that display_format() returns back the
         proper format F/C by default.
         """
-        display_fc_default = display_format("New York", "New York", weather_response)
+        display_fc_default = display_format(
+            "New York", "New York", weather_response
+        )
 
         self.assertEqual(display_fc_default, display_default_response)
 
@@ -185,7 +195,9 @@ class UtilsDisplayFormatTestCase(SupyTestCase):
         Testing that display_format() returns back the
         proper format when user wants C/F metric first.
         """
-        display_cf = display_format("New York", "New York", weather_response, format=2)
+        display_cf = display_format(
+            "New York", "New York", weather_response, format=2
+        )
 
         self.assertEqual(display_cf, display_cf_response)
 
@@ -318,7 +330,9 @@ class UserSchemaTestCase(SupyTestCase):
         try:
             UserSchema().load({"location": 81 * "7"}, partial=True)
         except ValidationError as exc:
-            self.assertEqual(exc.messages, {"location": ["location is too long."]})
+            self.assertEqual(
+                exc.messages, {"location": ["location is too long."]}
+            )
 
     def test_user_schema_raises_format_validation(self):
         """
