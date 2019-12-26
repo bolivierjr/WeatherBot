@@ -53,7 +53,8 @@ class WeatherBot(callbacks.Plugin):
         except DatabaseError as exc:
             log.error(str(exc))
             irc.reply(
-                "There was an error with the database. Check logs.", prefixNick=False,
+                "There was an error with the database. Check logs.",
+                prefixNick=False,
             )
 
     createdb = wrap(createdb, ["owner"])
@@ -75,7 +76,9 @@ class WeatherBot(callbacks.Plugin):
             user: Union[User, None] = check_user(msg.nick)
 
             if not text and not user:
-                irc.reply(f"No weather location set by {msg.nick}", prefixNick=False)
+                irc.reply(
+                    f"No weather location set by {msg.nick}", prefixNick=False
+                )
 
             elif user and not text:
                 weather = find_current_weather(user.coordinates)
@@ -91,7 +94,10 @@ class WeatherBot(callbacks.Plugin):
                 geo = find_geolocation(deserialized_location["location"])
                 weather = find_current_weather(geo["coordinates"])
                 display = display_format(
-                    geo["location"], geo["region"], weather, user.format if user else 1,
+                    geo["location"],
+                    geo["region"],
+                    weather,
+                    user.format if user else 1,
                 )
                 irc.reply(display, prefixNick=False)
 
@@ -106,7 +112,9 @@ class WeatherBot(callbacks.Plugin):
             if "not created" in str(exc):
                 irc.reply(str(exc), prefixNick=True)
             else:
-                irc.reply("There is an error. Contact admin.", prefixNick=False)
+                irc.reply(
+                    "There is an error. Contact admin.", prefixNick=False
+                )
 
         except (LocationNotFound, WeatherNotFound) as exc:
             irc.reply(str(exc), prefixNick=False)
@@ -116,7 +124,9 @@ class WeatherBot(callbacks.Plugin):
             if exc.response.status_code == 400:
                 irc.reply("Unable to find this location.", prefixNick=False)
             else:
-                irc.reply("There is an error. Contact admin.", prefixNick=False)
+                irc.reply(
+                    "There is an error. Contact admin.", prefixNick=False
+                )
 
     wz = wrap(wz, [optional("text")])
 
@@ -143,9 +153,15 @@ class WeatherBot(callbacks.Plugin):
             deserialized_location: Dict[str, str] = UserSchema().load(
                 {"location": html.escape(text), "format": num}, partial=True,
             )
-            geo: Dict[str, str] = find_geolocation(deserialized_location["location"])
+            geo: Dict[str, str] = find_geolocation(
+                deserialized_location["location"]
+            )
             geo.update(
-                {"nick": msg.nick, "host": f"{msg.user}@{msg.host}", "format": num}
+                {
+                    "nick": msg.nick,
+                    "host": f"{msg.user}@{msg.host}",
+                    "format": num,
+                }
             )
             if geo["location"] is None:
                 raise LocationNotFound("Unable to find this location.")
@@ -185,7 +201,9 @@ class WeatherBot(callbacks.Plugin):
             if "not created" in str(exc):
                 irc.reply(str(exc), prefixNick=True)
             else:
-                irc.reply("There is an error. Contact admin.", prefixNick=False)
+                irc.reply(
+                    "There is an error. Contact admin.", prefixNick=False
+                )
 
         except LocationNotFound as exc:
             irc.reply(str(exc), prefixNick=False)
