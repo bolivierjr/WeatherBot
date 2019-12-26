@@ -1,0 +1,7 @@
+version: '3.7'
+services:
+  limnoria-plugin-test:
+    container_name: limnoria-test
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev

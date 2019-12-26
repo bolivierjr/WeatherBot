@@ -1,0 +1,27 @@
+services:
+  - docker
+
+addons:
+  apt:
+    packages:
+      - docker-ce
+
+
+before_install:
+  - sudo rm /usr/local/bin/docker-compose
+  - sudo curl -L "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  - sudo chmod +x /usr/local/bin/docker-compose
+
+script:
+  - mkdir shared
+  - docker-compose -f docker-compose.test.yml build
+  - docker-compose -f docker-compose.test.yml run --rm limnoria-plugin-test supybot-test -v WeatherBot
+  - docker-compose -f docker-compose.test.yml run --rm limnoria-plugin-test flake8 WeatherBot
+
+after_script:
+  - docker-compose -f docker-compose.test.yml stop
+  - docker-compose -f docker-compose.test.yml rm -rf
+
+branches:
+  only:
+    - master

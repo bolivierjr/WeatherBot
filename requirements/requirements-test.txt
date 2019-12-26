@@ -1,0 +1,8 @@
+peewee==3.13.1
+requests==2.22.0
+marshmallow==3.3.0
+python-dotenv==0.10.3
+cachetools==4.0.0
+flake8==3.7.9
+black==19.10b0
+limnoria==2019.11.22

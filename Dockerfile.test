@@ -1,0 +1,11 @@
+FROM python:3.6-buster
+
+WORKDIR /WeatherBot
+
+COPY ./requirements/requirements-test.txt .
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r ./requirements-test.txt
+
+COPY . .
+
+WORKDIR /
