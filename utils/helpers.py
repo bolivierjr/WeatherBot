@@ -112,8 +112,8 @@ def display_format(
 
     display: str = (
         f"\x02{place}\x02 :: {condition} {temperature} (Humidity: {humidity}%)"
-        f" | \x02Feels like:\x02 {feels_like} | \x02Wind\x02: {wind_dir} at "
-        f"{wind} | \x02Today:\x02 {summary} High {high} - Low {low}"
+        f" | \x02Feels like\x02: {feels_like} | \x02Wind\x02: {wind_dir} at "
+        f"{wind} | \x02Today\x02: {summary} High {high} - Low {low}"
     )
 
     return display

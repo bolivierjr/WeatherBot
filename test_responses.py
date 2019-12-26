@@ -381,3 +381,17 @@ weather_response = {
     },
     "offset": -8,
 }
+
+display_default_response = (
+    f"\x02New York, New York\x02 :: Light Rain 52.6F/11.4C (Humidity: 82%) | "
+    f"\x02Feels like\x02: 52.6F/11.4C | \x02Wind\x02: WNW at 12.8mph/20.6kph | "
+    f"\x02Today\x02: Light rain in the morning and afternoon. High 54.3F/12.4C "
+    f"- Low 42.6F/5.9C"
+)
+
+display_cf_response = (
+    f"\x02New York, New York\x02 :: Light Rain 11.4C/52.6F (Humidity: 82%) | "
+    f"\x02Feels like\x02: 11.4C/52.6F | \x02Wind\x02: WNW at 20.6kph/12.8mph | "
+    f"\x02Today\x02: Light rain in the morning and afternoon. High 12.4C/54.3F "
+    f"- Low 5.9C/42.6F"
+)

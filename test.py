@@ -32,11 +32,23 @@ from unittest import mock
 from peewee import SqliteDatabase, DatabaseError
 from supybot.test import PluginTestCase, SupyTestCase
 from requests import RequestException, HTTPError
-from .utils.errors import LocationNotFound, WeatherNotFound
-from .utils.helpers import lru_cache, ttl_cache
-from .utils.helpers import find_geolocation, find_current_weather
-from .test_responses import geo_response, failed_geo_response, weather_response
 from .models.users import User, UserSchema
+from .utils.errors import LocationNotFound, WeatherNotFound
+from .test_responses import (
+    geo_response,
+    failed_geo_response,
+    weather_response,
+    display_default_response,
+    display_cf_response,
+)
+from .utils.helpers import (
+    find_geolocation,
+    find_current_weather,
+    display_format,
+    format_directions,
+    ttl_cache,
+    lru_cache,
+)
 
 
 def _mock_error_response(
@@ -157,6 +169,22 @@ class UtilsFindWeatherTestCase(SupyTestCase):
         mocker.return_value = mocked_error
 
         self.assertRaises(HTTPError, find_current_weather, "37.8267,-122.4233")
+
+
+class UtilsDisplayFormatTestCase(SupyTestCase):
+    def test_default_dislay_format(self):
+        display_fc_default = display_format(
+            "New York", "New York", weather_response
+        )
+
+        self.assertEqual(display_fc_default, display_default_response)
+
+    def test_cf_display_format(self):
+        display_cf = display_format(
+            "New York", "New York", weather_response, format=2
+        )
+
+        self.assertEqual(display_cf, display_cf_response)
 
 
 class UtilsErrorsTestCase(SupyTestCase):
