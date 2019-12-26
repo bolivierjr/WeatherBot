@@ -29,6 +29,7 @@
 ###
 
 from unittest import mock
+from marshmallow import ValidationError
 from peewee import SqliteDatabase, DatabaseError
 from supybot.test import PluginTestCase, SupyTestCase
 from requests import RequestException, HTTPError
@@ -62,10 +63,16 @@ def _mock_error_response(
     return mock_error
 
 
+####################################
+# Unit tests for plugin.py commands
+####################################
 class WeatherBotTestCase(PluginTestCase):
     plugins = ("WeatherBot",)
 
 
+##################################
+# Unit tests for utils/helpers.py
+##################################
 @mock.patch("requests.get", autospec=True)
 class UtilsFindGeoTestCase(SupyTestCase):
     geo_parameters = [
@@ -172,7 +179,11 @@ class UtilsFindWeatherTestCase(SupyTestCase):
 
 
 class UtilsDisplayFormatTestCase(SupyTestCase):
-    def test_default_dislay_format(self):
+    def test_default_display_format(self):
+        """
+        Testing that display_format() returns back the
+        proper format F/C by default.
+        """
         display_fc_default = display_format(
             "New York", "New York", weather_response
         )
@@ -180,6 +191,10 @@ class UtilsDisplayFormatTestCase(SupyTestCase):
         self.assertEqual(display_fc_default, display_default_response)
 
     def test_cf_display_format(self):
+        """
+        Testing that display_format() returns back the
+        proper format when user wants C/F metric first.
+        """
         display_cf = display_format(
             "New York", "New York", weather_response, format=2
         )
@@ -187,6 +202,25 @@ class UtilsDisplayFormatTestCase(SupyTestCase):
         self.assertEqual(display_cf, display_cf_response)
 
 
+class UtilsFormatDirectionTestCase(SupyTestCase):
+    def test_format_directions(self):
+        """
+        Test that format_directions() returns back
+        the proper cardinal direction given the degrees.
+        """
+        self.assertEqual(format_directions(300), "WNW")
+
+    def test_format_directions_with_none(self):
+        """
+        Test that format_directions() returns back
+        "N/A if None is given for the parameter.
+        """
+        self.assertEqual(format_directions(None), "N/A")
+
+
+#################################
+# Unit tests for utils/errors.py
+#################################
 class UtilsErrorsTestCase(SupyTestCase):
     def test_location_not_found_error(self) -> None:
         """
@@ -202,6 +236,10 @@ class UtilsErrorsTestCase(SupyTestCase):
         """
         self.assertTrue(issubclass(WeatherNotFound, RequestException))
 
+
+#################################
+# Unit tests for models/users.py
+#################################
 
 # Sqlite3 test database
 test_db = SqliteDatabase(":memory:")
@@ -228,6 +266,11 @@ class UserModelTestCase(SupyTestCase):
         SupyTestCase.tearDown(self)
 
     def test_user_model(self) -> None:
+        """
+        Test the user model created gives back the
+        proper attributes that was fed to the database
+        and saved.
+        """
         test_user = User.get(User.nick == "Johnno")
 
         self.assertEqual(test_user.id, 1)
@@ -241,6 +284,10 @@ class UserModelTestCase(SupyTestCase):
         self.assertEqual(repr(test_user), "<User Johnno>")
 
     def test_user_model_nick_unique(self) -> None:
+        """
+        Test that a DatabaseError is raised if the unique
+        user is tying to be saved again to the database.
+        """
         user = User(
             nick="Johnno",
             host="test@test.com",
@@ -252,3 +299,60 @@ class UserModelTestCase(SupyTestCase):
 
         with self.assertRaises(DatabaseError):
             user.save()
+
+
+class UserSchemaTestCase(SupyTestCase):
+    def test_user_schema(self):
+        """
+        Tests the UserSchema returns back a dictionary and
+        fails no validations with everything required.
+        """
+        user_info = {
+            "nick": "Johnno",
+            "host": "test@test.com",
+            "location": "Covington",
+            "region": "Louisiana",
+            "coordinates": "29.974,-91.087",
+            "format": 1,
+        }
+        user_schema = UserSchema().load(user_info)
+
+        self.assertEqual(user_schema, user_info)
+
+    def test_user_schema_raises_location_validation(self):
+        """
+        Tests the custom validation and error messages made for
+        the location element in UserSchema.
+        """
+        with self.assertRaises(ValidationError):
+            UserSchema().load({"location": 81 * "7"}, partial=True)
+
+        try:
+            UserSchema().load({"location": 81 * "7"}, partial=True)
+        except ValidationError as exc:
+            self.assertEqual(
+                exc.messages, {"location": ["location is too long."]}
+            )
+
+    def test_user_schema_raises_format_validation(self):
+        """
+        Tests the custom validation and error messages made for
+        the format element in UserSchema.
+        """
+        with self.assertRaises(ValidationError):
+            UserSchema().load({"format": 3}, partial=True)
+
+        with self.assertRaises(ValidationError):
+            UserSchema().load({"format": 0}, partial=True)
+
+        try:
+            UserSchema().load({"format": 3}, partial=True)
+        except ValidationError as exc:
+            self.assertEqual(
+                exc.messages,
+                {
+                    "format": [
+                        "Format setting must be set to 1 for imperial or 2 for metric units first."  # noqa: E501
+                    ]
+                },
+            )

@@ -119,7 +119,7 @@ def display_format(
     return display
 
 
-def format_directions(degrees: float) -> str:
+def format_directions(degrees: Union[isinstance, None]) -> str:
     if not degrees:
         return "N/A"
 
@@ -141,6 +141,6 @@ def format_directions(degrees: float) -> str:
         "NW",
         "NNW",
     ]
-    formula = round(degrees / (360.0 / len(directions))) % len(directions)
+    formula: int = round(degrees / (360.0 / len(directions))) % len(directions)
 
     return directions[formula]
