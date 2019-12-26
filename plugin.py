@@ -17,7 +17,7 @@ from .utils.helpers import (
     find_current_weather,
     display_format,
 )
-from supybot import utils, plugins, ircutils, callbacks, ircmsgs, log
+from supybot import callbacks, ircmsgs, log
 from supybot.commands import wrap, optional
 
 try:

@@ -4,4 +4,4 @@ services:
     container_name: limnoria-test
     build:
       context: ./
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile.test
