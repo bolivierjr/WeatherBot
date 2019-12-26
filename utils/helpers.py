@@ -37,9 +37,7 @@ def find_geolocation(location: str) -> Dict[str, str]:
         "access_key": os.getenv("WS_API_KEY"),
         "query": location,
     }
-    response = requests.get(
-        "http://api.weatherstack.com/current", params=payload
-    )
+    response = requests.get("http://api.weatherstack.com/current", params=payload)
     response.raise_for_status()
 
     res_data = response.json()
@@ -63,8 +61,7 @@ def find_current_weather(coordinates: str) -> Dict[str, Any]:
     darksky_key: str = os.getenv("DS_API_KEY")
     payload = {"exclude": "minutely,hourly,flags"}
     response = requests.get(
-        f"https://api.darksky.net/forecast/{darksky_key}/{coordinates}",
-        params=payload,
+        f"https://api.darksky.net/forecast/{darksky_key}/{coordinates}", params=payload,
     )
     response.raise_for_status()
 
@@ -78,9 +75,7 @@ def display_format(
     forecast: Dict[str, List[Dict]] = data.get("daily", {}).get("data")
 
     if not current or not forecast:
-        log.error(
-            "JSON data does not have current or forecast keys", exc_info=True
-        )
+        log.error("JSON data does not have current or forecast keys", exc_info=True)
         raise WeatherNotFound("Unable to find the weather at this time.")
 
     temp: float = current.get("temperature")
