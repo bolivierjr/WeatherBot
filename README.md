@@ -1,7 +1,7 @@
 # WeatherBot
 [![Build Status](https://travis-ci.org/bolivierjr/WeatherBot.svg?branch=master)](https://travis-ci.org/bolivierjr/WeatherBot)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
-[![GitHub issues](https://img.shields.io/github/issues/Naereen/StrapDown.js.svg)](https://github.com/bolivierjr/WeatherBot/issues)
+[![GitHub issues open](https://img.shields.io/github/issues/network-tools/shconfparser.svg)](https://github.com/bolivierjr/WeatherBot/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/bolivierjr/WeatherBot/pulls)
 
 
