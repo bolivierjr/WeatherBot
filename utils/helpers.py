@@ -12,8 +12,8 @@ from cachetools import cached, LRUCache, TTLCache
 
 path: str = dirname(abspath(__file__))
 env_path: str = join(path, "..", ".env")
-db_path: str = join(path, "..", "data", os.getenv("DB_NAME"))
 load_dotenv(dotenv_path=env_path)
+db_path: str = join(path, "..", "data", os.getenv("DB_NAME"))
 
 lru_cache = LRUCache(maxsize=32)
 ttl_cache = TTLCache(maxsize=64, ttl=900)
@@ -22,7 +22,7 @@ ttl_cache = TTLCache(maxsize=64, ttl=900)
 def check_user(nick: str) -> Union[User, None]:
     user: Union[User, None]
     try:
-        if not isfile(db_path):
+        if not isfile(db_path) or not User.table_exists():
             raise DatabaseError("Users db and table not created yet.")
         user = User.get(User.nick == nick)
     except User.DoesNotExist:

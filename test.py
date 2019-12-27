@@ -43,6 +43,7 @@ from .test_responses import (
     display_cf_response,
 )
 from .utils.helpers import (
+    check_user,
     find_geolocation,
     find_current_weather,
     display_format,
@@ -73,6 +74,50 @@ class WeatherBotTestCase(PluginTestCase):
 ##################################
 # Unit tests for utils/helpers.py
 ##################################
+
+# Sqlite3 test database
+test_db = SqliteDatabase(":memory:")
+
+
+class UtilsCheckUserTestCase(SupyTestCase):
+    def tearDown(self):
+        User.drop_table()
+        test_db.close()
+        SupyTestCase.tearDown(self)
+
+    def test_check_users_raises_exceptions(self):
+        """
+        Testing that check_users() function raises
+        DatabaseError when there is no sqlite db file
+        or no user table created yet.
+        """
+        self.assertRaises(DatabaseError, check_user, "Johnno")
+
+        with self.assertRaises(DatabaseError):
+            User.create_table()
+            User.drop_table()
+            check_user("Johnno")
+
+    def test_check_users(self):
+        """
+        Testing that check_users() helper function
+        returns back an instance of User model or None
+        if no users found.
+        """
+        User.create_table()
+        User.create(
+            nick="Johnno",
+            host="test@test.com",
+            location="New Orleans",
+            region="Louisiana",
+            coordinates="29.974,-90.087",
+            format=1,
+        )
+
+        self.assertTrue(isinstance(check_user("Johnno"), User))
+        self.assertEqual(check_user("Bruce"), None)
+
+
 @mock.patch("requests.get", autospec=True)
 class UtilsFindGeoTestCase(SupyTestCase):
     geo_parameters = [
@@ -240,11 +285,6 @@ class UtilsErrorsTestCase(SupyTestCase):
 #################################
 # Unit tests for models/users.py
 #################################
-
-# Sqlite3 test database
-test_db = SqliteDatabase(":memory:")
-
-
 class UserModelTestCase(SupyTestCase):
     def setUp(self):
         SupyTestCase.setUp(self)
