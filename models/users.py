@@ -1,6 +1,7 @@
 import os
-from datetime import datetime
 from supybot import log
+from datetime import datetime
+from dotenv import load_dotenv
 from os.path import dirname, abspath, join, isfile
 from marshmallow import Schema, fields, validates, ValidationError
 from peewee import (
@@ -13,7 +14,10 @@ from peewee import (
 
 
 path: str = dirname(abspath(__file__))
+env_path: str = join(path, "..", ".env")
+load_dotenv(dotenv_path=env_path)
 db_path: str = join(path, "..", "data", os.getenv("DB_NAME"))
+
 db = SqliteDatabase(db_path)
 
 
@@ -32,10 +36,10 @@ class User(Model):
 
     @classmethod
     def create_tables(cls) -> str:
-        if isfile(db_path):
+        if isfile(db_path) and cls.table_exists():
             return "Users table already created."
         with db:
-            db.create_tables([User])
+            cls.create_table()
             log.info("Created the users table")
             return "Created users table."
 
