@@ -16,15 +16,15 @@ Installation
 Fork the repo and change into your Limnoria plugins/ directory or any direcotry you choose to clone this
 repo and run commands:
 
-    $ git clone https://github.com/<YourUserNameHere>/WeatherBot.git
+``$ git clone https://github.com/<YourUserNameHere>/WeatherBot.git``
 
 Checkout to a feature/fix branch to make changes.
 
-    $ cd WeatherBot/
+``$ cd WeatherBot/``
 
-    $ cp .env.example.test .env.test && cp .env.example .env
+``$ cp .env.example.test .env.test && cp .env.example .env``
 
-    $ pip install -r requirements/requirements-test.txt
+``$ pip install -r requirements/requirements-test.txt``
 
 Remember to fill out your .env file with valid API keys.
 
@@ -40,16 +40,16 @@ Run the Tests
 
 Once docker and docker-compose is installed, you can run:
 
-    $ make test
+``$ make test``
 
 or
 
-    $ make test-all
+``$ make test-all``
 
 Alternatively, you can use the supybot-test command directly, but you have a chance of removing
 your database if you're not in a seperate venv and using requirements.test.txt. You can run:
 
-    $ supybot-test WeatherBot/
+``$ supybot-test WeatherBot/``
 
 Also, look in the Makefile for make commands about linting and formatting.
 Happy Contributing! :)
