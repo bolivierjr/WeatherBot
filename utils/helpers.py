@@ -12,7 +12,7 @@ from cachetools import cached, LRUCache, TTLCache
 
 path: str = dirname(abspath(__file__))
 env_path: str = join(path, "..", ".env")
-db_path: str = join(path, "..", "data", "Weather.db")
+db_path: str = join(path, "..", "data", os.getenv("DB_NAME"))
 load_dotenv(dotenv_path=env_path)
 
 lru_cache = LRUCache(maxsize=32)
@@ -43,7 +43,6 @@ def find_geolocation(location: str) -> Dict[str, str]:
     response.raise_for_status()
 
     res_data = response.json()
-    log.error(str(res_data))
     if response.status_code == 200 and "error" in res_data:
         log.error(f"geolocation: {res_data['error']['info']}", exc_info=True)
         raise LocationNotFound("Unable to find this location.")

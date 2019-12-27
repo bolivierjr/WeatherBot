@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from supybot import log
 from os.path import dirname, abspath, join, isfile
@@ -12,7 +13,7 @@ from peewee import (
 
 
 path: str = dirname(abspath(__file__))
-db_path: str = join(path, "..", "data", "Weather.db")
+db_path: str = join(path, "..", "data", os.getenv("DB_NAME"))
 db = SqliteDatabase(db_path)
 
 
@@ -27,9 +28,10 @@ class User(Model):
 
     class Meta:
         database = db
+        db_table = "users"
 
-    @staticmethod
-    def create_tables() -> str:
+    @classmethod
+    def create_tables(cls) -> str:
         if isfile(db_path):
             return "Users table already created."
         with db:
