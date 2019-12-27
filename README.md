@@ -27,4 +27,4 @@ PM your bot and `load WeatherBot`.
 
 ## Contributing
 PRs and Issues are welcome.
-Checkout [CONTRIBUTING.rst](https://github.com/bolivierjr/WeatherBot/CONTRIBUTING.rst)!
+Checkout [CONTRIBUTING.rst](https://github.com/bolivierjr/WeatherBot/blob/master/CONTRIBUTING.rst)!
