@@ -1,9 +1,9 @@
 # WeatherBot
 [![Build Status](https://travis-ci.org/bolivierjr/WeatherBot.svg?branch=master)](https://travis-ci.org/bolivierjr/WeatherBot)
+[![Python](https://img.shields.io/badge/python-3.6%20and%20later-blue.svg)]()
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 [![GitHub issues open](https://img.shields.io/github/issues/network-tools/shconfparser.svg)](https://github.com/bolivierjr/WeatherBot/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/bolivierjr/WeatherBot/pulls)
-
 
 A limnoria plugin for weather.
 

@@ -23,7 +23,7 @@ from supybot.commands import wrap, optional
 try:
     from supybot.i18n import PluginInternationalization
 
-    _ = PluginInternationalization("APIXUWeather")
+    _ = PluginInternationalization("WeatherBot")
 except ImportError:
     # Placeholder that allows to run the plugin on a bot
     # without the i18n module
@@ -37,6 +37,7 @@ class WeatherBot(callbacks.Plugin):
 
     threaded = True
 
+    @wrap(["owner"])
     def createdb(
         self,
         irc: callbacks.NestedCommandsIrcProxy,
@@ -57,9 +58,8 @@ class WeatherBot(callbacks.Plugin):
                 prefixNick=False,
             )
 
-    createdb = wrap(createdb, ["owner"])
-
-    def wz(
+    @wrap([optional("text")])
+    def weather(
         self,
         irc: callbacks.NestedCommandsIrcProxy,
         msg: ircmsgs.IrcMsg,
@@ -128,8 +128,7 @@ class WeatherBot(callbacks.Plugin):
                     "There is an error. Contact admin.", prefixNick=False
                 )
 
-    wz = wrap(wz, [optional("text")])
-
+    @wrap([optional("int"), "text"])
     def setweather(
         self,
         irc: callbacks.NestedCommandsIrcProxy,
@@ -211,8 +210,6 @@ class WeatherBot(callbacks.Plugin):
         except RequestException as exc:
             log.error(str(exc), exc_info=True)
             irc.reply("Unable to find this location.", prefixNick=False)
-
-    setweather = wrap(setweather, [optional("int"), "text"])
 
 
 Class = WeatherBot
