@@ -13,10 +13,12 @@ Getting your pull request merged in
 Installation
 ------------
 
-Change into your Limnoria plugins/ directory or any direcotry you choose to clone this
+Fork the repo and change into your Limnoria plugins/ directory or any direcotry you choose to clone this
 repo and run commands:
 
-    $ git clone https://github.com/bolivierjr/WeatherBot.git
+    $ git clone https://github.com/<YourUserNameHere>/WeatherBot.git
+
+Checkout to a feature/fix branch to make changes.
 
     $ cd WeatherBot/
 
