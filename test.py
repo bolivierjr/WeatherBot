@@ -248,9 +248,8 @@ test_db = SqliteDatabase(":memory:")
 class UserModelTestCase(SupyTestCase):
     def setUp(self):
         SupyTestCase.setUp(self)
-        test_db.connect()
-        test_db.drop_tables([User])
-        test_db.create_tables([User])
+        User.drop_table()
+        User.create_table()
         User.create(
             nick="Johnno",
             host="test@test.com",
@@ -261,7 +260,7 @@ class UserModelTestCase(SupyTestCase):
         )
 
     def tearDown(self):
-        test_db.drop_tables([User])
+        User.drop_table()
         test_db.close()
         SupyTestCase.tearDown(self)
 
@@ -299,6 +298,21 @@ class UserModelTestCase(SupyTestCase):
 
         with self.assertRaises(DatabaseError):
             user.save()
+
+
+class UserModelCreateTables(SupyTestCase):
+    def tearDown(self):
+        User.drop_table()
+        test_db.close()
+        SupyTestCase.tearDown(self)
+
+    def test_create_table(self):
+        """
+        Test the custom create_tables() class method in the User model.
+        """
+        self.assertEqual(User.create_tables(), "Created users table.")
+        self.assertEqual(User.create_tables(), "Users table already created.")
+        self.assertTrue(User.table_exists())
 
 
 class UserSchemaTestCase(SupyTestCase):
@@ -352,7 +366,8 @@ class UserSchemaTestCase(SupyTestCase):
                 exc.messages,
                 {
                     "format": [
-                        "Format setting must be set to 1 for imperial or 2 for metric units first."  # noqa: E501
+                        "Format setting must be set to 1 for imperial or 2 for "
+                        "metric units first."
                     ]
                 },
             )

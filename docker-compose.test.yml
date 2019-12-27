@@ -2,6 +2,8 @@ version: '3.7'
 services:
   limnoria-plugin-test:
     container_name: limnoria-test
+    env_file:
+      - .env.test
     build:
       context: ./
       dockerfile: Dockerfile.test
