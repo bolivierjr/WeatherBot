@@ -13,7 +13,7 @@ repos:
           name: black
           language: python
           args: [
-                '--line-length', '79',
+                '--line-length', '120',
                 '--target-version', 'py36'
           ]
 
