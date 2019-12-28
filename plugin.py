@@ -38,12 +38,7 @@ class WeatherBot(callbacks.Plugin):
     threaded = True
 
     @wrap(["owner"])
-    def createdb(
-        self,
-        irc: callbacks.NestedCommandsIrcProxy,
-        msg: ircmsgs.IrcMsg,
-        args: List[str],
-    ) -> None:
+    def createdb(self, irc: callbacks.NestedCommandsIrcProxy, msg: ircmsgs.IrcMsg, args: List[str]) -> None:
         """- takes no arguments.
         Creates a new user table.
         """
@@ -53,19 +48,10 @@ class WeatherBot(callbacks.Plugin):
 
         except DatabaseError as exc:
             log.error(str(exc))
-            irc.reply(
-                "There was an error with the database. Check logs.",
-                prefixNick=False,
-            )
+            irc.reply("There was an error with the database. Check logs.", prefixNick=False)
 
     @wrap([optional("text")])
-    def weather(
-        self,
-        irc: callbacks.NestedCommandsIrcProxy,
-        msg: ircmsgs.IrcMsg,
-        args: List[str],
-        text: str,
-    ) -> None:
+    def weather(self, irc: callbacks.NestedCommandsIrcProxy, msg: ircmsgs.IrcMsg, args: List[str], text: str) -> None:
         """- optional <location>
         Calls the weather.
         """
@@ -76,29 +62,18 @@ class WeatherBot(callbacks.Plugin):
             user: Union[User, None] = check_user(msg.nick)
 
             if not text and not user:
-                irc.reply(
-                    f"No weather location set by {msg.nick}", prefixNick=False
-                )
+                irc.reply(f"No weather location set by {msg.nick}", prefixNick=False)
 
             elif user and not text:
                 weather = find_current_weather(user.coordinates)
-                display = display_format(
-                    user.location, user.region, weather, user.format
-                )
+                display = display_format(user.location, user.region, weather, user.format)
                 irc.reply(display, prefixNick=False)
 
             else:
-                deserialized_location: Dict[str, str] = UserSchema().load(
-                    {"location": html.escape(text)}, partial=True
-                )
+                deserialized_location: Dict[str, str] = UserSchema().load({"location": html.escape(text)}, partial=True)
                 geo = find_geolocation(deserialized_location["location"])
                 weather = find_current_weather(geo["coordinates"])
-                display = display_format(
-                    geo["location"],
-                    geo["region"],
-                    weather,
-                    user.format if user else 1,
-                )
+                display = display_format(geo["location"], geo["region"], weather, user.format if user else 1)
                 irc.reply(display, prefixNick=False)
 
         except ValidationError as exc:
@@ -112,9 +87,7 @@ class WeatherBot(callbacks.Plugin):
             if "not created" in str(exc):
                 irc.reply(str(exc), prefixNick=True)
             else:
-                irc.reply(
-                    "There is an error. Contact admin.", prefixNick=False
-                )
+                irc.reply("There is an error. Contact admin.", prefixNick=False)
 
         except (LocationNotFound, WeatherNotFound) as exc:
             irc.reply(str(exc), prefixNick=False)
@@ -124,18 +97,11 @@ class WeatherBot(callbacks.Plugin):
             if exc.response.status_code == 400:
                 irc.reply("Unable to find this location.", prefixNick=False)
             else:
-                irc.reply(
-                    "There is an error. Contact admin.", prefixNick=False
-                )
+                irc.reply("There is an error. Contact admin.", prefixNick=False)
 
     @wrap([optional("int"), "text"])
     def setweather(
-        self,
-        irc: callbacks.NestedCommandsIrcProxy,
-        msg: ircmsgs.IrcMsg,
-        args: List[str],
-        num: int,
-        text: str,
+        self, irc: callbacks.NestedCommandsIrcProxy, msg: ircmsgs.IrcMsg, args: List[str], num: int, text: str
     ) -> None:
         """<display_format> <location>
         Sets the weather location for a user.
@@ -143,25 +109,15 @@ class WeatherBot(callbacks.Plugin):
         units to display first. e.g. setweather 2 70118
         """
         try:
-            format_error = {
-                "format": ["Must enter in an integer for the display format."]
-            }
+            format_error = {"format": ["Must enter in an integer for the display format."]}
             if not isinstance(num, int):
                 raise ValidationError(format_error)
 
             deserialized_location: Dict[str, str] = UserSchema().load(
                 {"location": html.escape(text), "format": num}, partial=True,
             )
-            geo: Dict[str, str] = find_geolocation(
-                deserialized_location["location"]
-            )
-            geo.update(
-                {
-                    "nick": msg.nick,
-                    "host": f"{msg.user}@{msg.host}",
-                    "format": num,
-                }
-            )
+            geo: Dict[str, str] = find_geolocation(deserialized_location["location"])
+            geo.update({"nick": msg.nick, "host": f"{msg.user}@{msg.host}", "format": num})
             if geo["location"] is None:
                 raise LocationNotFound("Unable to find this location.")
 
@@ -181,10 +137,7 @@ class WeatherBot(callbacks.Plugin):
 
             units = "imperial" if num == 1 else "metric"
             log.info(f"{msg.nick} set their location to {text}")
-            irc.reply(
-                f"{msg.nick} set their weather to {units} first and {text}.",
-                prefixNick=False,
-            )
+            irc.reply(f"{msg.nick} set their weather to {units} first and {text}.", prefixNick=False)
 
         except ValidationError as exc:
             if "location" in exc.messages:
@@ -200,9 +153,7 @@ class WeatherBot(callbacks.Plugin):
             if "not created" in str(exc):
                 irc.reply(str(exc), prefixNick=True)
             else:
-                irc.reply(
-                    "There is an error. Contact admin.", prefixNick=False
-                )
+                irc.reply("There is an error. Contact admin.", prefixNick=False)
 
         except LocationNotFound as exc:
             irc.reply(str(exc), prefixNick=False)

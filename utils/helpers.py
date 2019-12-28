@@ -37,9 +37,7 @@ def find_geolocation(location: str) -> Dict[str, str]:
         "access_key": os.getenv("WS_API_KEY"),
         "query": location,
     }
-    response = requests.get(
-        "http://api.weatherstack.com/current", params=payload
-    )
+    response = requests.get("http://api.weatherstack.com/current", params=payload)
     response.raise_for_status()
 
     res_data = response.json()
@@ -61,25 +59,18 @@ def find_geolocation(location: str) -> Dict[str, str]:
 def find_current_weather(coordinates: str) -> Dict[str, Any]:
     darksky_key: str = os.getenv("DS_API_KEY")
     payload = {"exclude": "minutely,hourly,flags"}
-    response = requests.get(
-        f"https://api.darksky.net/forecast/{darksky_key}/{coordinates}",
-        params=payload,
-    )
+    response = requests.get(f"https://api.darksky.net/forecast/{darksky_key}/{coordinates}", params=payload)
     response.raise_for_status()
 
     return response.json()
 
 
-def display_format(
-    location: str, region: str, data: Dict[str, Any], format: int = 1
-) -> str:
+def display_format(location: str, region: str, data: Dict[str, Any], format: int = 1) -> str:
     current: Dict[Union[str, float]] = data.get("currently")
     forecast: Dict[str, List[Dict]] = data.get("daily", {}).get("data")
 
     if not current or not forecast:
-        log.error(
-            "JSON data does not have current or forecast keys", exc_info=True
-        )
+        log.error("JSON data does not have current or forecast keys", exc_info=True)
         raise WeatherNotFound("Unable to find the weather at this time.")
 
     temp: float = current.get("temperature")
@@ -110,9 +101,8 @@ def display_format(
     summary = forecast[0].get("summary", "N/A")
 
     display: str = (
-        f"\x02{place}\x02 :: {condition} {temperature} (Humidity: {humidity}%)"
-        f" | \x02Feels like\x02: {feels_like} | \x02Wind\x02: {wind_dir} at "
-        f"{wind} | \x02Today\x02: {summary} High {high} - Low {low}"
+        f"\x02{place}\x02 :: {condition} {temperature} (Humidity: {humidity}%) | \x02Feels like\x02: {feels_like} | "
+        f"\x02Wind\x02: {wind_dir} at {wind} | \x02Today\x02: {summary} High {high} - Low {low}"
     )
 
     return display
@@ -122,24 +112,7 @@ def format_directions(degrees: Union[isinstance, None]) -> str:
     if not degrees:
         return "N/A"
 
-    directions = [
-        "N",
-        "NNE",
-        "NE",
-        "ENE",
-        "E",
-        "ESE",
-        "SE",
-        "SSE",
-        "S",
-        "SSW",
-        "SW",
-        "WSW",
-        "W",
-        "WNW",
-        "NW",
-        "NNW",
-    ]
+    directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
     formula: int = round(degrees / (360.0 / len(directions))) % len(directions)
 
     return directions[formula]

@@ -65,7 +65,4 @@ class UserSchema(Schema):
     def validate_format(self, data, **kwargs):
         if data == 1 or data == 2:
             return
-        raise ValidationError(
-            "Format setting must be set to 1 for "
-            "imperial or 2 for metric units first."
-        )
+        raise ValidationError("Format setting must be set to 1 for imperial or 2 for metric units first.")
