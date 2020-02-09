@@ -50,23 +50,27 @@ __contributors__ = {}
 # This is a url where the most recent plugin package can be downloaded.
 __url__ = ""
 
-from . import config
-from . import plugin
+from . import config, plugin
+from . import utils, models
+
 
 if sys.version_info >= (3, 4):
     from importlib import reload
 else:
     from imp import reload
-# In case we're being reloaded.
+
+# Add more reloads here if you add third-party modules/subpackages and want
+# them to be reloaded when this plugin is reloaded. Make sure these are
+# reloaded before the default modules: config.py and plugin.py.
+reload(models)
+reload(utils)
+
+
+# Default reloads
 reload(config)
 reload(plugin)
 # Add more reloads here if you add third-party modules and want them to be
 # reloaded when this plugin is reloaded.  Don't forget to import them as well!
-from . import utils
-from . import models
-
-reload(utils)
-reload(models)
 
 if world.testing:
     from . import test
