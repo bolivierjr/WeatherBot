@@ -23,7 +23,8 @@ Remember to add the API keys to your .env file in order to load the script.
 
 `$ pip install -r requirements/requirements.txt`
 
-PM your bot and `load WeatherBot`.
+PM your bot and `load WeatherBot` and `createdb` to make a user database.
+
 
 ## Contributing
 PRs and Issues are welcome.
