@@ -12,7 +12,6 @@ from marshmallow import ValidationError
 from .utils.errors import LocationNotFound, WeatherNotFound
 from .models.users import User, UserSchema
 from .utils.helpers import (
-    check_user,
     find_geolocation,
     find_current_weather,
     display_format,
@@ -59,7 +58,7 @@ class WeatherBot(callbacks.Plugin):
             geo: Dict[str, str]
             weather: Dict[str, Any]
             display: str
-            user: Union[User, None] = check_user(msg.nick)
+            user: Union[User, None] = User.check_user(msg.nick)
 
             if not text and not user:
                 irc.reply(f"No weather location set by {msg.nick}", prefixNick=False)
@@ -122,7 +121,7 @@ class WeatherBot(callbacks.Plugin):
                 raise LocationNotFound("Unable to find this location.")
 
             user_schema: Dict[str, str] = UserSchema().load(geo)
-            user: Union[User, None] = check_user(msg.nick)
+            user: Union[User, None] = User.check_user(msg.nick)
 
             if user:
                 user.host = user_schema["host"]

@@ -1,16 +1,11 @@
 import os
 from supybot import log
+from typing import Union
 from datetime import datetime
 from dotenv import load_dotenv
 from os.path import dirname, abspath, join, isfile
 from marshmallow import Schema, fields, validates, ValidationError
-from peewee import (
-    SqliteDatabase,
-    CharField,
-    DateTimeField,
-    Model,
-    IntegerField,
-)
+from peewee import SqliteDatabase, CharField, DateTimeField, Model, IntegerField, DatabaseError
 
 
 path: str = dirname(abspath(__file__))
@@ -42,6 +37,18 @@ class User(Model):
             cls.create_table()
             log.info("Created the users table")
             return "Created users table."
+
+    @classmethod
+    def check_user(cls, nick: str) -> Union["User", None]:
+        user: Union[User, None]
+        try:
+            if not isfile(db_path) or not cls.table_exists():
+                raise DatabaseError("Users db and table not created yet.")
+            user = cls.get(cls.nick == nick)
+        except User.DoesNotExist:
+            user = None
+
+        return user
 
     def __repr__(self):
         return f"<User {self.nick}>"
