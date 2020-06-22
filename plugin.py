@@ -6,16 +6,12 @@
 
 import html
 from peewee import DatabaseError
-from typing import List, Union, Dict, Any
+from typing import List, Union, Dict
 from requests import RequestException
 from marshmallow import ValidationError
 from .utils.errors import LocationNotFound, WeatherNotFound
 from .models.users import User, UserSchema
-from .utils.helpers import (
-    find_geolocation,
-    find_current_weather,
-    display_format,
-)
+from .utils.services import query_location, query_current_weather
 from supybot import callbacks, ircmsgs, log
 from supybot.commands import wrap, optional
 
@@ -55,25 +51,19 @@ class WeatherBot(callbacks.Plugin):
         Calls the weather.
         """
         try:
-            geo: Dict[str, str]
-            weather: Dict[str, Any]
-            display: str
             user: Union[User, None] = User.check_user(msg.nick)
 
             if not text and not user:
                 irc.reply(f"No weather location set by {msg.nick}", prefixNick=False)
 
             elif user and not text:
-                weather = find_current_weather(user.coordinates)
-                display = display_format(user.location, user.region, weather, user.format)
-                irc.reply(display, prefixNick=False)
+                weather: str = query_current_weather(f"{user.location, user.region}", user.format)
+                irc.reply(weather, prefixNick=False)
 
             else:
                 deserialized_location: Dict[str, str] = UserSchema().load({"location": html.escape(text)}, partial=True)
-                geo = find_geolocation(deserialized_location["location"])
-                weather = find_current_weather(geo["coordinates"])
-                display = display_format(geo["location"], geo["region"], weather, user.format if user else 1)
-                irc.reply(display, prefixNick=False)
+                weather: str = query_current_weather(deserialized_location["location"], user.format if user else 1)
+                irc.reply(weather, prefixNick=False)
 
         except ValidationError as exc:
             if "location" in exc.messages:
@@ -115,7 +105,7 @@ class WeatherBot(callbacks.Plugin):
             deserialized_location: Dict[str, str] = UserSchema().load(
                 {"location": html.escape(text), "format": num}, partial=True,
             )
-            geo: Dict[str, str] = find_geolocation(deserialized_location["location"])
+            geo: Dict[str, str] = query_location(deserialized_location["location"])
             geo.update({"nick": msg.nick, "host": f"{msg.user}@{msg.host}", "format": num})
             if geo["location"] is None:
                 raise LocationNotFound("Unable to find this location.")

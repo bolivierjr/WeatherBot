@@ -42,14 +42,8 @@ from .test_responses import (
     display_default_response,
     display_cf_response,
 )
-from .utils.helpers import (
-    find_geolocation,
-    find_current_weather,
-    display_format,
-    format_directions,
-    ttl_cache,
-    lru_cache,
-)
+from .utils.weather import WeatherAPI, DarkskyAPI
+from .utils.services import WeatherService
 
 
 # Sqlite3 test database
@@ -65,6 +59,29 @@ def _mock_error_response(status: int, raise_for_status: RequestException) -> moc
     return mock_error
 
 
+class MockAPI(WeatherAPI):
+    """
+    Mock WeatherAPI class to inject into WeatherService for testing.
+    """
+
+    def __init__(self, query):
+        self.query = query
+        self.location = None
+        self.region = None
+        self.coordinates = None
+
+    def find_current_weather(self):
+        return weather_response
+
+    def find_geolocation(self):
+        self.location = "New York"
+        self.region = "NY"
+        self.coordinates = "40.714,-74.006"
+
+    def display_format(self, format):
+        return display_default_response
+
+
 ####################################
 # Unit tests for plugin.py commands
 ####################################
@@ -73,41 +90,64 @@ class WeatherBotTestCase(PluginTestCase):
 
 
 ##################################
-# Unit tests for utils/helpers.py
+# Unit tests for utils/services.py
 ##################################
+class UtilsWeatherServiceTestCase(SupyTestCase):
+    def test_get_current(self):
+        """
+        Testing get_current is returning the correct string response
+        to send back to the user.
+        """
+        mock_api = MockAPI("New York, NY")
+        service = WeatherService(mock_api)
+        weather = service.get_current(format=1)
+        self.assertEqual(weather, display_default_response)
+        self.assertTrue(isinstance(mock_api, WeatherAPI))
+
+    def test_get_location(self):
+        """
+        Testing get_location is returning the correct dictonary of location values.
+        """
+        expected = {"location": "New York", "region": "NY", "coordinates": "40.714,-74.006"}
+        service = WeatherService(MockAPI("New York, NY"))
+        location = service.get_location()
+        self.assertEqual(location, expected)
+
+
+##################################
+# Unit tests for utils/weather.py
+##################################
+class UtilsDarkskyApiTestCase(SupyTestCase):
+    def test_darkskyapi_implements_weatherapi(self):
+        """
+        Testing DarkskyAPI implements from the WeatherAPI interface.
+        """
+        weather = DarkskyAPI("New York, New York")
+        self.assertTrue(isinstance(weather, WeatherAPI))
+
+
 @mock.patch("requests.get", autospec=True)
 class UtilsFindGeoTestCase(SupyTestCase):
-    geo_parameters = [
-        "New York, NY",
-        "70447",
-        "Mandeville, LA",
-        "70447",
-        "New York, NY",
-    ]
-
     def setUp(self) -> None:
         SupyTestCase.setUp(self)
-        lru_cache.clear()  # Clear any cached results
 
-    def test_find_geolocation_and_lru_cache(self, mocker: mock.patch) -> None:
+    def test_find_geolocation(self, mocker: mock.patch) -> None:
         """
-        Testing lru_cache is only making requests hit the geolocation
-        api on new results that aren't cached and find_geolocation
-        is returning the correct dictionary of results back.
+        Testing find_geolocation is returning the correct dictionary of results back.
         """
         mocker.return_value.status_code = 200
         mocker.return_value.json.return_value = geo_response
-        for param in self.geo_parameters:
-            geolocation = find_geolocation(param)
+        service = DarkskyAPI("New York, NY")
+        service.find_geolocation()
 
         expected = {
             "location": "New York",
             "region": "New York",
             "coordinates": "40.714,-74.006",
         }
-        self.assertEqual(mocker.call_count, 3)
-        self.assertEqual(geolocation, expected)
-        self.assertTrue(mocker.return_value.raise_for_status.called)
+        self.assertEqual(service.location, expected["location"])
+        self.assertEqual(service.region, expected["region"])
+        self.assertEqual(service.coordinates, expected["coordinates"])
 
     def test_find_geolocation_raises_location_not_found(self, mocker: mock.patch) -> None:
         """
@@ -117,7 +157,8 @@ class UtilsFindGeoTestCase(SupyTestCase):
         mocker.return_value.status_code = 200
         mocker.return_value.json.return_value = failed_geo_response
 
-        self.assertRaises(LocationNotFound, find_geolocation, "70888")
+        service = DarkskyAPI("70888")
+        self.assertRaises(LocationNotFound, service.find_geolocation)
 
     def test_find_geolocation_raises_http_error(self, mocker: mock.patch) -> None:
         """
@@ -127,35 +168,29 @@ class UtilsFindGeoTestCase(SupyTestCase):
         mocked_error = _mock_error_response(status=404, raise_for_status=HTTPError("FAILED"))
         mocker.return_value = mocked_error
 
-        self.assertRaises(HTTPError, find_geolocation, "70447")
+        service = DarkskyAPI("70447")
+        self.assertRaises(HTTPError, service.find_geolocation)
+        self.assertTrue(mocker.return_value.raise_for_status.called)
 
 
 @mock.patch("requests.get", autospec=True)
 class UtilsFindWeatherTestCase(SupyTestCase):
-    weather_parameters = [
-        "37.8267,-122.4233",
-        "40.714,-74.006",
-        "37.8267,-122.4233",
-    ]
-
     def setUp(self):
         SupyTestCase.setUp(self)
-        ttl_cache.clear()  # Clear any cached results
+        self.side_effects = [
+            mock.Mock(status_code=200, json=lambda: geo_response),
+            mock.Mock(status_code=200, json=lambda: weather_response),
+        ]
 
-    def test_find_current_weather_and_ttl_cache(self, mocker: mock.patch) -> None:
+    def test_find_current_weather(self, mocker: mock.patch) -> None:
         """
-        Testing ttl_cache is only making requests hit the weather
-        api on new results that aren't cached and find_current_weather
-        is returning the correct dictionary of results back.
+        Testing find_current_weather is returning the correct dictionary of results back.
         """
-        mocker.return_value.status_code = 200
-        mocker.return_value.json.return_value = weather_response
-        for param in self.weather_parameters:
-            weather = find_current_weather(param)
+        mocker.side_effect = self.side_effects
+        service = DarkskyAPI("40.714,-74.006")
+        service.find_current_weather()
 
-        self.assertEqual(mocker.call_count, 2)
-        self.assertEqual(weather, weather_response)
-        self.assertTrue(mocker.return_value.raise_for_status.called)
+        self.assertEqual(service.data, weather_response)
 
     def test_find_geolocation_raises_http_error(self, mocker: mock.patch) -> None:
         """
@@ -165,25 +200,40 @@ class UtilsFindWeatherTestCase(SupyTestCase):
         mocked_error = _mock_error_response(status=404, raise_for_status=HTTPError("FAILED"))
         mocker.return_value = mocked_error
 
-        self.assertRaises(HTTPError, find_current_weather, "37.8267,-122.4233")
+        service = DarkskyAPI("37.8267,-122.4233")
+        self.assertRaises(HTTPError, service.find_current_weather)
+        self.assertTrue(mocker.return_value.raise_for_status.called)
 
 
+@mock.patch("requests.get", autospec=True)
 class UtilsDisplayFormatTestCase(SupyTestCase):
-    def test_default_display_format(self):
+    def test_default_display_format(self, mocker):
         """
         Testing that display_format() returns back the
         proper format F/C by default.
         """
-        display_fc_default = display_format("New York", "New York", weather_response)
+        mocker.return_value.status_code = 200
+        mocker.return_value.json.return_value = geo_response
+
+        service = DarkskyAPI("New York, New York")
+        service.find_geolocation()
+        service.data = weather_response
+        display_fc_default = service.display_format()
 
         self.assertEqual(display_fc_default, display_default_response)
 
-    def test_cf_display_format(self):
+    def test_cf_display_format(self, mocker):
         """
         Testing that display_format() returns back the
         proper format when user wants C/F metric first.
         """
-        display_cf = display_format("New York", "New York", weather_response, format=2)
+        mocker.return_value.status_code = 200
+        mocker.return_value.json.return_value = geo_response
+
+        service = DarkskyAPI("New York, New York")
+        service.find_geolocation()
+        service.data = weather_response
+        display_cf = service.display_format(format=2)
 
         self.assertEqual(display_cf, display_cf_response)
 
@@ -194,14 +244,16 @@ class UtilsFormatDirectionTestCase(SupyTestCase):
         Test that format_directions() returns back
         the proper cardinal direction given the degrees.
         """
-        self.assertEqual(format_directions(300), "WNW")
+        service = DarkskyAPI("New York, New York")
+        self.assertEqual(service.format_directions(300), "WNW")
 
     def test_format_directions_with_none(self):
         """
         Test that format_directions() returns back
         "N/A if None is given for the parameter.
         """
-        self.assertEqual(format_directions(None), "N/A")
+        service = DarkskyAPI("New York, New York")
+        self.assertEqual(service.format_directions(None), "N/A")
 
 
 #################################
