@@ -7,6 +7,9 @@ test:
 pre-commit:
 	pre-commit run --all-files
 
+isort:
+	isort .
+
 black:
 	black --line-length=120 ./
 

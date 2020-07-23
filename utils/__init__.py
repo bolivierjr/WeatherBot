@@ -1,5 +1,6 @@
 from importlib import reload
-from . import errors, weather, services
+
+from . import errors, services, weather
 
 # To reload the modules when you reload the bot.
 reload(errors)

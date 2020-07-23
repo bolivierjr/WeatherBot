@@ -1,12 +1,12 @@
 import os
-from supybot import log
-from typing import Union
 from datetime import datetime
-from dotenv import load_dotenv
-from os.path import dirname, abspath, join, isfile
-from marshmallow import Schema, fields, validates, ValidationError
-from peewee import SqliteDatabase, CharField, DateTimeField, Model, IntegerField, DatabaseError
+from os.path import abspath, dirname, isfile, join
+from typing import Union
 
+from dotenv import load_dotenv
+from marshmallow import Schema, ValidationError, fields, validates
+from peewee import CharField, DatabaseError, DateTimeField, IntegerField, Model, SqliteDatabase
+from supybot import log
 
 path: str = dirname(abspath(__file__))
 env_path: str = join(path, "..", ".env")

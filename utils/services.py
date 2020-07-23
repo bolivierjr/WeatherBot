@@ -1,7 +1,8 @@
 from typing import Dict
-from .weather import WeatherAPI, DarkskyAPI
-from cachetools import cached, TTLCache
 
+from cachetools import TTLCache, cached
+
+from .weather import DarkskyAPI, WeatherAPI
 
 ttl_cache = TTLCache(maxsize=64, ttl=900)
 
