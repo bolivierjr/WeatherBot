@@ -53,7 +53,7 @@ class WeatherService:
 
     def get_current(self, format: int = 1) -> str:
         """
-        Returns back a formatted display of the weather to output.
+        Gets the current weather data and formats it to display to a user.
 
         Args:
             format(optional): The format you want to display the weather with.

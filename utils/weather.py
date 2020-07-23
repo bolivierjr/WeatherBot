@@ -10,17 +10,29 @@ from .errors import LocationNotFound, WeatherNotFound
 
 class WeatherAPI(ABC):
     """
-    Weather api interface and required methods to implement new weather api classes.
+    Base abstract class for weather APIs. This class can be subclassed to implement a new API
+    service for weather data.
+
+    Contains 2 abstract methods that must be implemented in the child class.
+
+    Attributes:
+        query: The location to query for weather results.
     """
 
     query: str
 
     @abstractmethod
     def find_current_weather(self, query: str) -> None:
+        """
+        Should find the current weather data from a query and prepare it to be formatted for display.
+        """
         pass
 
     @abstractmethod
     def display_format(self) -> str:
+        """
+        Should format the weather data to be displayed on screen by a user.
+        """
         pass
 
 
