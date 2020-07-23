@@ -1,10 +1,16 @@
+import os
 from typing import Dict
 
 from cachetools import TTLCache, cached
 
 from .weather import DarkskyAPI, WeatherAPI
 
-ttl_cache = TTLCache(maxsize=64, ttl=900)
+# Configurable ttl cache settings that you can change
+# through environment variables.
+maxsize = int(os.getenv("TTL_CACHE_MAX_SIZE"))
+ttl = int(os.getenv("TTL_CACHE_TIME"))
+
+ttl_cache = TTLCache(maxsize=maxsize, ttl=ttl)
 
 
 @cached(cache=ttl_cache)
