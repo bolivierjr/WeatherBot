@@ -13,7 +13,7 @@ from requests import RequestException
 from supybot import callbacks, ircmsgs, log
 from supybot.commands import optional, wrap
 
-from .models.users import User, UserSchema
+from .models.users import AnonymousUser, User, UserSchema
 from .utils.errors import LocationNotFound, WeatherNotFound
 from .utils.services import query_current_weather, query_location
 
@@ -53,18 +53,18 @@ class WeatherBot(callbacks.Plugin):
         Calls the weather.
         """
         try:
-            user: Union[User, None] = User.check_user(msg.nick)
+            user: Union[User, AnonymousUser] = User.get_user(msg.nick)
 
-            if not text and not user:
+            if not text and isinstance(user, AnonymousUser):
                 irc.reply(f"No weather location set by {msg.nick}", prefixNick=False)
 
-            elif user and not text:
-                weather: str = query_current_weather(f"{user.location, user.region}", user.format)
+            elif not text:
+                weather: str = query_current_weather(f"{user.location}, {user.region}", user.format)
                 irc.reply(weather, prefixNick=False)
 
             else:
                 deserialized_location: Dict[str, str] = UserSchema().load({"location": html.escape(text)}, partial=True)
-                weather: str = query_current_weather(deserialized_location["location"], user.format if user else 1)
+                weather: str = query_current_weather(deserialized_location["location"], user.format)
                 irc.reply(weather, prefixNick=False)
 
         except ValidationError as exc:
@@ -113,18 +113,26 @@ class WeatherBot(callbacks.Plugin):
                 raise LocationNotFound("Unable to find this location.")
 
             user_schema: Dict[str, str] = UserSchema().load(geo)
-            user: Union[User, None] = User.check_user(msg.nick)
+            user, created = User.get_or_create(
+                nick=msg.nick,
+                defaults={
+                    "host": user_schema["host"],
+                    "format": user_schema["format"],
+                    "location": user_schema["location"],
+                    "region": user_schema["region"],
+                    "coordinates": user_schema["coordinates"],
+                },
+            )
 
-            if user:
+            # If created is a boolean of 0, it means it found a user.
+            # Updates the user fields and saves to db.
+            if not created:
                 user.host = user_schema["host"]
                 user.format = user_schema["format"]
                 user.location = user_schema["location"]
                 user.region = user_schema["region"]
                 user.coordinates = user_schema["coordinates"]
                 user.save()
-            else:
-                new_user = User(**user_schema)
-                new_user.save()
 
             units = "imperial" if num == 1 else "metric"
             log.info(f"{msg.nick} set their location to {text}")

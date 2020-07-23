@@ -35,7 +35,7 @@ from peewee import DatabaseError, SqliteDatabase
 from requests import HTTPError, RequestException
 from supybot.test import PluginTestCase, SupyTestCase
 
-from .models.users import User, UserSchema
+from .models.users import AnonymousUser, User, UserSchema
 from .test_responses import (
     display_cf_response,
     display_default_response,
@@ -349,30 +349,30 @@ class UserModelCreateTables(SupyTestCase):
         self.assertTrue(User.table_exists())
 
 
-class UserModelCheckUserTestCase(SupyTestCase):
+class UserModelGetUserTestCase(SupyTestCase):
     def tearDown(self):
         User.drop_table()
         test_db.close()
         SupyTestCase.tearDown(self)
 
-    def test_check_user_raises_exceptions(self):
+    def test_get_user_raises_exceptions(self):
         """
-        Testing that check_users() method raises
+        Testing that get_user() method raises
         DatabaseError when there is no sqlite db file
         or no user table created yet.
         """
-        self.assertRaises(DatabaseError, User.check_user, "Johnno")
+        self.assertRaises(DatabaseError, User.get_user, "Johnno")
 
         with self.assertRaises(DatabaseError):
             User.create_table()
             User.drop_table()
-            User.check_user("Johnno")
+            User.get_user("Johnno")
 
-    def test_check_user(self):
+    def test_get_user(self):
         """
-        Testing that check_users() method returns
-        back an instance of User model or None if
-        no user is found.
+        Testing that get_user() method returns
+        back an instance of User model or AnonymousUser
+        if no user is found.
         """
         User.create_table()
         User.create(
@@ -384,8 +384,8 @@ class UserModelCheckUserTestCase(SupyTestCase):
             format=1,
         )
 
-        self.assertTrue(isinstance(User.check_user("Johnno"), User))
-        self.assertEqual(User.check_user("Bruce"), None)
+        self.assertTrue(isinstance(User.get_user("Johnno"), User))
+        self.assertTrue(isinstance(User.get_user("Bruce"), AnonymousUser))
 
 
 class UserSchemaTestCase(SupyTestCase):

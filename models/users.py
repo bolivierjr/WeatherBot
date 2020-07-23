@@ -19,7 +19,7 @@ db = SqliteDatabase(db_path)
 class User(Model):
     nick = CharField(unique=True, max_length=15, null=False)
     host = CharField(max_length=255, null=False)
-    format = IntegerField(null=False)
+    format = IntegerField(default=1)
     location = CharField(max_length=80, null=False)
     region = CharField(max_length=80, null=False)
     coordinates = CharField(max_length=20, null=False)
@@ -39,19 +39,23 @@ class User(Model):
             return "Created users table."
 
     @classmethod
-    def check_user(cls, nick: str) -> Union["User", None]:
-        user: Union[User, None]
+    def get_user(cls, nick: str) -> Union["User", "AnonymousUser"]:
+        user: Union[User, AnonymousUser]
         try:
             if not isfile(db_path) or not cls.table_exists():
                 raise DatabaseError("Users db and table not created yet.")
-            user = cls.get(cls.nick == nick)
+            user: User = cls.get(cls.nick == nick)
         except User.DoesNotExist:
-            user = None
+            user: AnonymousUser = AnonymousUser()
 
         return user
 
     def __repr__(self):
         return f"<User {self.nick}>"
+
+
+class AnonymousUser:
+    format = 1
 
 
 class UserSchema(Schema):
