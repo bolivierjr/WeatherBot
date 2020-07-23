@@ -33,6 +33,7 @@ WeatherBot: A weather script that uses APIXU's api.
 """
 
 import sys
+
 import supybot
 from supybot import world
 
@@ -50,9 +51,7 @@ __contributors__ = {}
 # This is a url where the most recent plugin package can be downloaded.
 __url__ = ""
 
-from . import config, plugin
-from . import utils, models
-
+from . import config, models, plugin, utils
 
 if sys.version_info >= (3, 4):
     from importlib import reload

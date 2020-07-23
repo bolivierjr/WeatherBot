@@ -29,22 +29,23 @@
 ###
 
 from unittest import mock
-from marshmallow import ValidationError
-from peewee import SqliteDatabase, DatabaseError
-from supybot.test import PluginTestCase, SupyTestCase
-from requests import RequestException, HTTPError
-from .models.users import User, UserSchema
-from .utils.errors import LocationNotFound, WeatherNotFound
-from .test_responses import (
-    geo_response,
-    failed_geo_response,
-    weather_response,
-    display_default_response,
-    display_cf_response,
-)
-from .utils.weather import WeatherAPI, DarkskyAPI
-from .utils.services import WeatherService
 
+from marshmallow import ValidationError
+from peewee import DatabaseError, SqliteDatabase
+from requests import HTTPError, RequestException
+from supybot.test import PluginTestCase, SupyTestCase
+
+from .models.users import User, UserSchema
+from .test_responses import (
+    display_cf_response,
+    display_default_response,
+    failed_geo_response,
+    geo_response,
+    weather_response,
+)
+from .utils.errors import LocationNotFound, WeatherNotFound
+from .utils.services import WeatherService
+from .utils.weather import DarkskyAPI, WeatherAPI
 
 # Sqlite3 test database
 test_db = SqliteDatabase(":memory:")

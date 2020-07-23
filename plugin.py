@@ -5,15 +5,17 @@
 # All rights reserved.
 
 import html
-from peewee import DatabaseError
-from typing import List, Union, Dict
-from requests import RequestException
+from typing import Dict, List, Union
+
 from marshmallow import ValidationError
-from .utils.errors import LocationNotFound, WeatherNotFound
-from .models.users import User, UserSchema
-from .utils.services import query_location, query_current_weather
+from peewee import DatabaseError
+from requests import RequestException
 from supybot import callbacks, ircmsgs, log
-from supybot.commands import wrap, optional
+from supybot.commands import optional, wrap
+
+from .models.users import User, UserSchema
+from .utils.errors import LocationNotFound, WeatherNotFound
+from .utils.services import query_current_weather, query_location
 
 try:
     from supybot.i18n import PluginInternationalization

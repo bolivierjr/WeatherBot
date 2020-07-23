@@ -1,8 +1,10 @@
 import os
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Union
+
 import requests
 from supybot import log
-from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Union
+
 from .errors import LocationNotFound, WeatherNotFound
 
 
