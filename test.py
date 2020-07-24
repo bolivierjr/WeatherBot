@@ -31,11 +31,11 @@
 from unittest import mock
 
 from marshmallow import ValidationError
-from peewee import DatabaseError, SqliteDatabase
+from peewee import DatabaseError, Model, SqliteDatabase
 from requests import HTTPError, RequestException
 from supybot.test import PluginTestCase, SupyTestCase
 
-from .models.users import AnonymousUser, User, UserSchema
+from .models.users import User, UserSchema
 from .test_responses import (
     display_cf_response,
     display_default_response,
@@ -45,6 +45,7 @@ from .test_responses import (
 )
 from .utils.errors import LocationNotFound, WeatherNotFound
 from .utils.services import WeatherService
+from .utils.users import AnonymousUser, get_user
 from .utils.weather import DarkskyAPI, WeatherAPI
 
 # Sqlite3 test database
@@ -88,6 +89,54 @@ class MockAPI(WeatherAPI):
 ####################################
 class WeatherBotTestCase(PluginTestCase):
     plugins = ("WeatherBot",)
+
+
+##################################
+# Unit tests for utils/users.py
+##################################
+class UtilsGetUserTestCase(SupyTestCase):
+    def tearDown(self):
+        User.drop_table()
+        test_db.close()
+        SupyTestCase.tearDown(self)
+
+    def test_get_users_raises_exceptions(self):
+        """
+        Testing that get_user() function raises
+        DatabaseError when there is no sqlite db file
+        or no user table created yet.
+        """
+        self.assertRaises(DatabaseError, get_user, "Johnno")
+
+        with self.assertRaises(DatabaseError):
+            User.create_table()
+            User.drop_table()
+            get_user("Johnno")
+
+    def test_get_users(self):
+        """
+        Testing that get_user() utility function
+        returns back an instance of User model or
+        AnonymousUser if no users found. Also tests
+        the default format for anonymous user.
+        """
+        User.create_table()
+        User.create(
+            nick="Johnno",
+            host="test@test.com",
+            location="New Orleans",
+            region="Louisiana",
+            coordinates="29.974,-90.087",
+            format=1,
+        )
+
+        user = get_user("Johnno")
+        anonymous_user = get_user("Bruce")
+
+        self.assertEqual(user.nick, "Johnno")
+        self.assertIsInstance(user, Model)
+        self.assertIsInstance(anonymous_user, AnonymousUser)
+        self.assertEqual(anonymous_user.format, 1)
 
 
 ##################################
@@ -347,45 +396,6 @@ class UserModelCreateTables(SupyTestCase):
         self.assertEqual(User.create_tables(), "Created users table.")
         self.assertEqual(User.create_tables(), "Users table already created.")
         self.assertTrue(User.table_exists())
-
-
-class UserModelGetUserTestCase(SupyTestCase):
-    def tearDown(self):
-        User.drop_table()
-        test_db.close()
-        SupyTestCase.tearDown(self)
-
-    def test_get_user_raises_exceptions(self):
-        """
-        Testing that get_user() method raises
-        DatabaseError when there is no sqlite db file
-        or no user table created yet.
-        """
-        self.assertRaises(DatabaseError, User.get_user, "Johnno")
-
-        with self.assertRaises(DatabaseError):
-            User.create_table()
-            User.drop_table()
-            User.get_user("Johnno")
-
-    def test_get_user(self):
-        """
-        Testing that get_user() method returns
-        back an instance of User model or AnonymousUser
-        if no user is found.
-        """
-        User.create_table()
-        User.create(
-            nick="Johnno",
-            host="test@test.com",
-            location="New Orleans",
-            region="Louisiana",
-            coordinates="29.974,-90.087",
-            format=1,
-        )
-
-        self.assertTrue(isinstance(User.get_user("Johnno"), User))
-        self.assertTrue(isinstance(User.get_user("Bruce"), AnonymousUser))
 
 
 class UserSchemaTestCase(SupyTestCase):

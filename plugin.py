@@ -13,9 +13,10 @@ from requests import RequestException
 from supybot import callbacks, ircmsgs, log
 from supybot.commands import optional, wrap
 
-from .models.users import AnonymousUser, User, UserSchema
+from .models.users import User, UserSchema
 from .utils.errors import LocationNotFound, WeatherNotFound
 from .utils.services import query_current_weather, query_location
+from .utils.users import AnonymousUser, get_user
 
 try:
     from supybot.i18n import PluginInternationalization
@@ -53,7 +54,7 @@ class WeatherBot(callbacks.Plugin):
         Calls the weather.
         """
         try:
-            user: Union[User, AnonymousUser] = User.get_user(msg.nick)
+            user: Union[User, AnonymousUser] = get_user(msg.nick)
 
             if not text and isinstance(user, AnonymousUser):
                 irc.reply(f"No weather location set by {msg.nick}", prefixNick=False)
