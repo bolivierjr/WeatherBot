@@ -5,13 +5,13 @@
 # All rights reserved.
 
 import html
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 from marshmallow import ValidationError
 from peewee import DatabaseError
 from requests import RequestException
 from supybot import callbacks, ircmsgs, log
-from supybot.commands import optional, wrap
+from supybot.commands import getopts, optional, wrap
 
 from .models.users import User, UserSchema
 from .utils.errors import LocationNotFound, WeatherNotFound
@@ -91,25 +91,30 @@ class WeatherBot(callbacks.Plugin):
             else:
                 irc.reply("There is an error. Contact admin.", prefixNick=False)
 
-    @wrap([optional("int"), "text"])
+    @wrap([getopts({"metric": ""}), "text"])
     def setweather(
-        self, irc: callbacks.NestedCommandsIrcProxy, msg: ircmsgs.IrcMsg, args: List[str], num: int, text: str
+        self,
+        irc: callbacks.NestedCommandsIrcProxy,
+        msg: ircmsgs.IrcMsg,
+        args: List[str],
+        optlist: List[Tuple[str, bool]],
+        text: str,
     ) -> None:
-        """<display_format> <location>
-        Sets the weather location for a user.
-        Format number is set to 1 for imperial, and 2 for metric, for which
-        units to display first. e.g. setweather 2 70118
+        """[--metric] <location>
+        Sets the weather location for a user. Format is set to show imperial first by default.
+        To show metric first, use the --metric option. e.g. setweather --metric 70118
         """
         try:
-            format_error = {"format": ["Must enter in an integer for the display format."]}
-            if not isinstance(num, int):
-                raise ValidationError(format_error)
+            format = 1
+            for option, _ in optlist:
+                if option == "metric":
+                    format = 2
 
             deserialized_location: Dict[str, str] = UserSchema().load(
-                {"location": html.escape(text), "format": num}, partial=True,
+                {"location": html.escape(text), "format": format}, partial=True,
             )
             geo: Dict[str, str] = query_location(deserialized_location["location"])
-            geo.update({"nick": msg.nick, "host": f"{msg.user}@{msg.host}", "format": num})
+            geo.update({"nick": msg.nick, "host": f"{msg.user}@{msg.host}", "format": format})
             if geo["location"] is None:
                 raise LocationNotFound("Unable to find this location.")
 
@@ -135,7 +140,7 @@ class WeatherBot(callbacks.Plugin):
                 user.coordinates = user_schema["coordinates"]
                 user.save()
 
-            units = "imperial" if num == 1 else "metric"
+            units = "imperial" if format == 1 else "metric"
             log.info(f"{msg.nick} set their location to {text}")
             irc.reply(f"{msg.nick} set their weather to {units} first and {text}.", prefixNick=False)
 
