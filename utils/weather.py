@@ -63,6 +63,7 @@ class DarkskyAPI(WeatherAPI):
             "access_key": os.getenv("WS_API_KEY"),
             "query": self.query,
         }
+        # https requires the paid tier, so we use http here.
         response: requests.Response = requests.get("http://api.weatherstack.com/current", params=payload)
         response.raise_for_status()
 
