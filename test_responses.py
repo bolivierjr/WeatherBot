@@ -12,6 +12,8 @@ geo_response = {
     }
 }
 
+geo_response_without_region = {"location": {**geo_response["location"], "region": "", "country": "USA"}}
+
 failed_geo_response = {
     "success": False,
     "error": {
