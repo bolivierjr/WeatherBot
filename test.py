@@ -41,6 +41,7 @@ from .test_responses import (
     display_default_response,
     failed_geo_response,
     geo_response,
+    geo_response_without_region,
     weather_response,
 )
 from .utils.errors import LocationNotFound, WeatherNotFound
@@ -193,6 +194,25 @@ class UtilsFindGeoTestCase(SupyTestCase):
         expected = {
             "location": "New York",
             "region": "New York",
+            "coordinates": "40.714,-74.006",
+        }
+        self.assertEqual(service.location, expected["location"])
+        self.assertEqual(service.region, expected["region"])
+        self.assertEqual(service.coordinates, expected["coordinates"])
+
+    def test_find_geolocation_without_region(self, mocker: mock.patch) -> None:
+        """
+        Testing find_geolocation is returning the correct dictionary of results back
+        if no region is found in data, that it will return the country instead.
+        """
+        mocker.return_value.status_code = 200
+        mocker.return_value.json.return_value = geo_response_without_region
+        service = DarkskyAPI("New York, NY")
+        service.find_geolocation()
+
+        expected = {
+            "location": "New York",
+            "region": "USA",
             "coordinates": "40.714,-74.006",
         }
         self.assertEqual(service.location, expected["location"])
