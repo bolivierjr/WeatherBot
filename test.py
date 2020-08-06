@@ -62,6 +62,17 @@ def _mock_error_response(status: int, raise_for_status: RequestException) -> moc
     return mock_error
 
 
+def get_mock_user():
+    return User(
+        nick="Johnno",
+        host="test@test.com",
+        location="New York",
+        region="New York",
+        coordinates="40.714,-74.006",
+        format=1,
+    )
+
+
 class MockAPI(WeatherAPI):
     """
     Mock WeatherAPI class to inject into WeatherService for testing.
@@ -73,7 +84,7 @@ class MockAPI(WeatherAPI):
         self.region = None
         self.coordinates = None
 
-    def find_current_weather(self):
+    def find_current_weather(self, user):
         return weather_response
 
     def find_geolocation(self):
@@ -150,8 +161,9 @@ class UtilsWeatherServiceTestCase(SupyTestCase):
         to send back to the user.
         """
         mock_api = MockAPI("New York, NY")
+        mock_user = get_mock_user()
         service = WeatherService(mock_api)
-        weather = service.get_current(format=1)
+        weather = service.get_current(mock_user)
         self.assertEqual(weather, display_default_response)
         self.assertTrue(isinstance(mock_api, WeatherAPI))
 
@@ -247,18 +259,30 @@ class UtilsFindGeoTestCase(SupyTestCase):
 class UtilsFindWeatherTestCase(SupyTestCase):
     def setUp(self):
         SupyTestCase.setUp(self)
-        self.side_effects = [
-            mock.Mock(status_code=200, json=lambda: geo_response),
-            mock.Mock(status_code=200, json=lambda: weather_response),
-        ]
 
     def test_find_current_weather(self, mocker: mock.patch) -> None:
         """
         Testing find_current_weather is returning the correct dictionary of results back.
         """
-        mocker.side_effect = self.side_effects
+        mocker.side_effect = [
+            mock.Mock(status_code=200, json=lambda: geo_response),
+            mock.Mock(status_code=200, json=lambda: weather_response),
+        ]
+        mock_user = get_mock_user()
         service = DarkskyAPI("40.714,-74.006")
-        service.find_current_weather()
+        service.find_current_weather(mock_user)
+
+        self.assertEqual(service.data, weather_response)
+
+    def test_find_current_weather_with_empty_query(self, mocker: mock.patch) -> None:
+        """
+        Testing find_current_weather will use the User object to set geo attributes instead of
+        find_geolocation with an empty query and return back the correct dictionary of results.
+        """
+        mocker.side_effect = [mock.Mock(status_code=200, json=lambda: weather_response)]
+        mock_user = get_mock_user()
+        service = DarkskyAPI("")
+        service.find_current_weather(mock_user)
 
         self.assertEqual(service.data, weather_response)
 
@@ -269,9 +293,10 @@ class UtilsFindWeatherTestCase(SupyTestCase):
         """
         mocked_error = _mock_error_response(status=404, raise_for_status=HTTPError("FAILED"))
         mocker.return_value = mocked_error
+        mock_user = get_mock_user()
 
         service = DarkskyAPI("37.8267,-122.4233")
-        self.assertRaises(HTTPError, service.find_current_weather)
+        self.assertRaises(HTTPError, service.find_current_weather, mock_user)
         self.assertTrue(mocker.return_value.raise_for_status.called)
 
 

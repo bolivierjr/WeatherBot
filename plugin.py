@@ -60,12 +60,12 @@ class WeatherBot(callbacks.Plugin):
                 irc.reply(f"No weather location set by {msg.nick}", prefixNick=False)
 
             elif not text:
-                weather: str = query_current_weather(f"{user.location}, {user.region}", user.format)
+                weather: str = query_current_weather(text, user)
                 irc.reply(weather, prefixNick=False)
 
             else:
                 deserialized_location: Dict[str, str] = UserSchema().load({"location": html.escape(text)}, partial=True)
-                weather: str = query_current_weather(deserialized_location["location"], user.format)
+                weather: str = query_current_weather(deserialized_location["location"], user)
                 irc.reply(weather, prefixNick=False)
 
         except ValidationError as exc:
