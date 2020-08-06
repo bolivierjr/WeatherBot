@@ -1,8 +1,10 @@
 import os
-from typing import Dict
+from typing import Dict, Union
 
 from cachetools import TTLCache, cached
 
+from ..models.users import User
+from .users import AnonymousUser
 from .weather import DarkskyAPI, WeatherAPI
 
 # Configurable ttl cache settings that you can change
@@ -28,21 +30,19 @@ def query_location(query: str) -> Dict[str, str]:
     return weather.get_location()
 
 
-@cached(cache=ttl_cache)
-def query_current_weather(query: str, format: int = 1) -> str:
+def query_current_weather(query: str, user: Union[User, AnonymousUser]) -> str:
     """
     Client function to get user's weather display.
 
     Args:
         query: The location to query for the weather api.
-        format(optional): The format you want to display the weather with.
-            e.g. imperial first or metric - F/C or C/F
+        user: The user object found in the db or an anonymous user object.
 
     Returns:
         A formatted string to display of the weather to output.
     """
     weather = WeatherService(DarkskyAPI(query))
-    return weather.get_current(format)
+    return weather.get_current(user)
 
 
 class WeatherService:
@@ -57,19 +57,18 @@ class WeatherService:
     def __init__(self, weather_api: WeatherAPI):
         self.weather_api = weather_api
 
-    def get_current(self, format: int = 1) -> str:
+    def get_current(self, user: Union[User, AnonymousUser]) -> str:
         """
         Gets the current weather data and formats it to display to a user.
 
         Args:
-            format(optional): The format you want to display the weather with.
-                e.g. imperial first or metric - F/C or C/F
+            user: The user object found in the db or an anonymous user object.
 
         Returns:
              A formatted string to display of the weather to output.
         """
-        self.weather_api.find_current_weather()
-        return self.weather_api.display_format(format)
+        self.weather_api.find_current_weather(user)
+        return self.weather_api.display_format(user.format)
 
     def get_location(self) -> Dict[str, str]:
         """

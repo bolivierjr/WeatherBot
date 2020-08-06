@@ -5,7 +5,9 @@ from typing import Any, Dict, List, Union
 import requests
 from supybot import log
 
+from ..models.users import User
 from .errors import LocationNotFound, WeatherNotFound
+from .users import AnonymousUser
 
 
 class WeatherAPI(ABC):
@@ -119,11 +121,17 @@ class DarkskyAPI(WeatherAPI):
 
         return directions[formula]
 
-    def find_current_weather(self) -> None:
+    def find_current_weather(self, user: Union[User, AnonymousUser]) -> None:
         """
         Returns the current weather found of a user's location query and sets the data class attribute.
         """
-        self.find_geolocation()
+        if not self.query and not isinstance(user, AnonymousUser):
+            self.location = user.location
+            self.region = user.region
+            self.coordinates = user.coordinates
+        else:
+            self.find_geolocation()
+
         darksky_key: str = os.getenv("DS_API_KEY")
         payload = {"exclude": "minutely,hourly,flags"}
         response = requests.get(f"https://api.darksky.net/forecast/{darksky_key}/{self.coordinates}", params=payload)
