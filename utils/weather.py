@@ -81,7 +81,7 @@ class DarkskyAPI(WeatherAPI):
         # Sets the location attributes, if region is not found, it will use the country
         # name. If no country name is found, it will then throw an exception.
         self.location: str = res_location.get("name")
-        self.region: str = res_location.get("region") or res_location.get("country")
+        self.region: str = res_location.get("region").strip() or res_location.get("country")
         if not self.region:
             raise LocationNotFound("Unable to find this location.")
         self.coordinates = f"{lat},{long}"
