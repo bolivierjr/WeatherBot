@@ -37,7 +37,6 @@ from supybot.test import PluginTestCase, SupyTestCase
 
 from .models.users import User, UserSchema
 from .test_responses import (
-    display_cf_response,
     display_default_response,
     failed_geo_response,
     geo_response,
@@ -47,7 +46,7 @@ from .test_responses import (
 from .utils.errors import LocationNotFound, WeatherNotFound
 from .utils.services import WeatherService
 from .utils.users import AnonymousUser, get_user
-from .utils.weather import DarkskyAPI, WeatherAPI
+from .utils.weather import OpenWeatherMapAPI, WeatherAPI
 
 # Sqlite3 test database
 test_db = SqliteDatabase(":memory:")
@@ -180,12 +179,12 @@ class UtilsWeatherServiceTestCase(SupyTestCase):
 ##################################
 # Unit tests for utils/weather.py
 ##################################
-class UtilsDarkskyApiTestCase(SupyTestCase):
-    def test_darkskyapi_implements_weatherapi(self):
+class UtilsOpenWeatherMapApiTestCase(SupyTestCase):
+    def test_openweathermapapi_implements_weatherapi(self):
         """
-        Testing DarkskyAPI implements from the WeatherAPI interface.
+        Testing OpenWeatherMapAPI implements from the WeatherAPI interface.
         """
-        weather = DarkskyAPI("New York, New York")
+        weather = OpenWeatherMapAPI("New York, New York")
         self.assertTrue(isinstance(weather, WeatherAPI))
 
 
@@ -200,7 +199,7 @@ class UtilsFindGeoTestCase(SupyTestCase):
         """
         mocker.return_value.status_code = 200
         mocker.return_value.json.return_value = geo_response
-        service = DarkskyAPI("New York, NY")
+        service = OpenWeatherMapAPI("New York, NY")
         service.find_geolocation()
 
         expected = {
@@ -219,7 +218,7 @@ class UtilsFindGeoTestCase(SupyTestCase):
         """
         mocker.return_value.status_code = 200
         mocker.return_value.json.return_value = geo_response_without_region
-        service = DarkskyAPI("New York, NY")
+        service = OpenWeatherMapAPI("New York, NY")
         service.find_geolocation()
 
         expected = {
@@ -239,7 +238,7 @@ class UtilsFindGeoTestCase(SupyTestCase):
         mocker.return_value.status_code = 200
         mocker.return_value.json.return_value = failed_geo_response
 
-        service = DarkskyAPI("70888")
+        service = OpenWeatherMapAPI("70888")
         self.assertRaises(LocationNotFound, service.find_geolocation)
 
     def test_find_geolocation_raises_http_error(self, mocker: mock.patch) -> None:
@@ -250,7 +249,7 @@ class UtilsFindGeoTestCase(SupyTestCase):
         mocked_error = _mock_error_response(status=404, raise_for_status=HTTPError("FAILED"))
         mocker.return_value = mocked_error
 
-        service = DarkskyAPI("70447")
+        service = OpenWeatherMapAPI("70447")
         self.assertRaises(HTTPError, service.find_geolocation)
         self.assertTrue(mocker.return_value.raise_for_status.called)
 
@@ -269,7 +268,7 @@ class UtilsFindWeatherTestCase(SupyTestCase):
             mock.Mock(status_code=200, json=lambda: weather_response),
         ]
         mock_user = get_mock_user()
-        service = DarkskyAPI("40.714,-74.006")
+        service = OpenWeatherMapAPI("40.714,-74.006")
         service.find_current_weather(mock_user)
 
         self.assertEqual(service.data, weather_response)
@@ -281,7 +280,7 @@ class UtilsFindWeatherTestCase(SupyTestCase):
         """
         mocker.side_effect = [mock.Mock(status_code=200, json=lambda: weather_response)]
         mock_user = get_mock_user()
-        service = DarkskyAPI("")
+        service = OpenWeatherMapAPI("")
         service.find_current_weather(mock_user)
 
         self.assertEqual(service.data, weather_response)
@@ -295,42 +294,42 @@ class UtilsFindWeatherTestCase(SupyTestCase):
         mocker.return_value = mocked_error
         mock_user = get_mock_user()
 
-        service = DarkskyAPI("37.8267,-122.4233")
+        service = OpenWeatherMapAPI("37.8267,-122.4233")
         self.assertRaises(HTTPError, service.find_current_weather, mock_user)
         self.assertTrue(mocker.return_value.raise_for_status.called)
 
 
-@mock.patch("requests.get", autospec=True)
-class UtilsDisplayFormatTestCase(SupyTestCase):
-    def test_default_display_format(self, mocker):
-        """
-        Testing that display_format() returns back the
-        proper format F/C by default.
-        """
-        mocker.return_value.status_code = 200
-        mocker.return_value.json.return_value = geo_response
+# @mock.patch("requests.get", autospec=True)
+# class UtilsDisplayFormatTestCase(SupyTestCase):
+#     def test_default_display_format(self, mocker):
+#         """
+#         Testing that display_format() returns back the
+#         proper format F/C by default.
+#         """
+#         mocker.return_value.status_code = 200
+#         mocker.return_value.json.return_value = geo_response
 
-        service = DarkskyAPI("New York, New York")
-        service.find_geolocation()
-        service.data = weather_response
-        display_fc_default = service.display_format()
+#         service = OpenWeatherMapAPI("New York, New York")
+#         service.find_geolocation()
+#         service.data = weather_response
+#         display_fc_default = service.display_format()
 
-        self.assertEqual(display_fc_default, display_default_response)
+#         self.assertEqual(display_fc_default, display_default_response)
 
-    def test_cf_display_format(self, mocker):
-        """
-        Testing that display_format() returns back the
-        proper format when user wants C/F metric first.
-        """
-        mocker.return_value.status_code = 200
-        mocker.return_value.json.return_value = geo_response
+#     def test_cf_display_format(self, mocker):
+#         """
+#         Testing that display_format() returns back the
+#         proper format when user wants C/F metric first.
+#         """
+#         mocker.return_value.status_code = 200
+#         mocker.return_value.json.return_value = geo_response
 
-        service = DarkskyAPI("New York, New York")
-        service.find_geolocation()
-        service.data = weather_response
-        display_cf = service.display_format(format=2)
+#         service = OpenWeatherMapAPI("New York, New York")
+#         service.find_geolocation()
+#         service.data = weather_response
+#         display_cf = service.display_format(format=2)
 
-        self.assertEqual(display_cf, display_cf_response)
+#         self.assertEqual(display_cf, display_cf_response)
 
 
 class UtilsFormatDirectionTestCase(SupyTestCase):
@@ -339,7 +338,7 @@ class UtilsFormatDirectionTestCase(SupyTestCase):
         Test that format_directions() returns back
         the proper cardinal direction given the degrees.
         """
-        service = DarkskyAPI("New York, New York")
+        service = OpenWeatherMapAPI("New York, New York")
         self.assertEqual(service.format_directions(300), "WNW")
 
     def test_format_directions_with_none(self):
@@ -347,7 +346,7 @@ class UtilsFormatDirectionTestCase(SupyTestCase):
         Test that format_directions() returns back
         "N/A if None is given for the parameter.
         """
-        service = DarkskyAPI("New York, New York")
+        service = OpenWeatherMapAPI("New York, New York")
         self.assertEqual(service.format_directions(None), "N/A")
 
 
