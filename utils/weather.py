@@ -38,7 +38,7 @@ class WeatherAPI(ABC):
         pass
 
 
-class DarkskyAPI(WeatherAPI):
+class OpenWeatherMapAPI(WeatherAPI):
     """
     Weather API class that uses Darksky and Weatherstack(for geolocation) to get weather data.
 
@@ -132,9 +132,15 @@ class DarkskyAPI(WeatherAPI):
         else:
             self.find_geolocation()
 
-        darksky_key: str = os.getenv("DS_API_KEY")
-        payload = {"exclude": "minutely,hourly,flags"}
-        response = requests.get(f"https://api.darksky.net/forecast/{darksky_key}/{self.coordinates}", params=payload)
+        lat, long = self.coordinates.split(",")
+        payload = {
+            "exclude": "minutely,hourly",
+            "units": "imperial",
+            "appid": os.getenv("OWM_API_KEY"),
+            "lat": lat,
+            "lon": long,
+        }
+        response = requests.get(f"https://api.openweathermap.org/data/2.5/onecall", params=payload)
         response.raise_for_status()
 
         self.data: Dict[str, Any] = response.json()
@@ -150,18 +156,17 @@ class DarkskyAPI(WeatherAPI):
         Returns:
             A formatted string to display of the current weather.
         """
-        current: Dict[Union[str, float]] = self.data.get("currently")
-        forecast: Dict[str, List[Dict]] = self.data.get("daily", {}).get("data")
-
+        current: Dict[Union[str, float]] = self.data.get("current", {})
+        forecast: Dict[str, List[Dict]] = self.data.get("daily", [{}])
         if not current or not forecast:
             log.error("JSON data does not have current or forecast keys")
             raise WeatherNotFound("Unable to find the weather at this time.")
 
-        temp: float = current.get("temperature")
-        feels: float = current.get("apparentTemperature")
-        wind_spd: float = current.get("windSpeed")
-        forecast_high: float = forecast[0].get("temperatureHigh")
-        forecast_low: float = forecast[0].get("temperatureLow")
+        temp: float = current.get("temp")
+        feels: float = current.get("feels_like")
+        wind_spd: float = current.get("wind_speed")
+        forecast_high: float = forecast[0].get("temp").get("max")
+        forecast_low: float = forecast[0].get("temp").get("min")
 
         # Format to display imperial or metric units first.
         # e.g. 1 = imperial, 2 = metric, default is imperial.
@@ -179,17 +184,17 @@ class DarkskyAPI(WeatherAPI):
             wind = f"{wind_spd * 1.609344:.1f}kph/{wind_spd:.1f}mph"
 
         place = f"{self.location}, {self.region}"
-        condition: str = current.get("summary", "N/A")
-        humidity = f"{int(current.get('humidity') * 100)}"
-        wind_dir: str = self.format_directions(current.get("windBearing"))
-        summary: str = forecast[0].get("summary", "N/A")
+        condition: str = current.get("weather")[0].get("description").capitalize()
+        humidity = f"{current.get('humidity')}"
+        wind_dir: str = self.format_directions(current.get("wind_deg"))
+        summary: str = forecast[0].get("weather")[0].get("description").capitalize()
 
         display = (
             f"\x02{place}\x02 :: {condition} {temperature} (Humidity: {humidity}%) | \x02Feels like\x02: {feels_like} "
-            f"| \x02Wind\x02: {wind_dir} at {wind} | \x02Today\x02: {summary} High {high} - Low {low}"
+            f"| \x02Wind\x02: {wind_dir} at {wind} | \x02Today\x02: {summary}. High {high} - Low {low}"
         )
 
         return display
 
     def __repr__(self) -> str:
-        return f"<DarkskyAPI {self.query}>"
+        return f"<OpenWeatherMapAPI {self.query}>"

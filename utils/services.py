@@ -5,7 +5,7 @@ from cachetools import TTLCache, cached
 
 from ..models.users import User
 from .users import AnonymousUser
-from .weather import DarkskyAPI, WeatherAPI
+from .weather import OpenWeatherMapAPI, WeatherAPI
 
 # Configurable ttl cache settings that you can change
 # through environment variables.
@@ -26,7 +26,7 @@ def query_location(query: str) -> Dict[str, str]:
     Returns:
         A dictionary of results of location, region and coordinates.
     """
-    weather = WeatherService(DarkskyAPI(query))
+    weather = WeatherService(OpenWeatherMapAPI(query))
     return weather.get_location()
 
 
@@ -41,7 +41,7 @@ def query_current_weather(query: str, user: Union[User, AnonymousUser]) -> str:
     Returns:
         A formatted string to display of the weather to output.
     """
-    weather = WeatherService(DarkskyAPI(query))
+    weather = WeatherService(OpenWeatherMapAPI(query))
     return weather.get_current(user)
 
 
