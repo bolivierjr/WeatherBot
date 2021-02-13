@@ -156,8 +156,8 @@ class OpenWeatherMapAPI(WeatherAPI):
         Returns:
             A formatted string to display of the current weather.
         """
-        current: Dict[Union[str, float]] = self.data.get("current", {})
-        forecast: Dict[str, List[Dict]] = self.data.get("daily", [{}])
+        current: Dict[Union[str, float]] = self.data.get("current")
+        forecast: Dict[str, List[Dict]] = self.data.get("daily")
         if not current or not forecast:
             log.error("JSON data does not have current or forecast keys")
             raise WeatherNotFound("Unable to find the weather at this time.")
