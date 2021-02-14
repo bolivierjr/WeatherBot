@@ -57,8 +57,10 @@ class WeatherBot(callbacks.Plugin):
         optlist: List[Tuple[str, bool]],
         text: str,
     ) -> None:
-        """- optional <location>
-        Calls the weather.
+        """- optional <location> OR [--user] <username>
+        Calls the current weather given an optional arg .e.g. .weather 70119 -
+        If you leave out the location, it will try to use the user's set location that is saved -
+        You can find another user's weather by using the --user flag. e.g. .weather --user Chad
         """
         lookup_user: bool = False
         for opt, _ in optlist:
