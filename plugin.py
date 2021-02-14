@@ -48,17 +48,41 @@ class WeatherBot(callbacks.Plugin):
             log.error(str(exc))
             irc.reply("There was an error with the database. Check logs.", prefixNick=False)
 
-    @wrap([optional("text")])
-    def weather(self, irc: callbacks.NestedCommandsIrcProxy, msg: ircmsgs.IrcMsg, args: List[str], text: str) -> None:
+    @wrap([getopts({"user": ""}), optional("text")])
+    def weather(
+        self,
+        irc: callbacks.NestedCommandsIrcProxy,
+        msg: ircmsgs.IrcMsg,
+        args: List[str],
+        optlist: List[Tuple[str, bool]],
+        text: str,
+    ) -> None:
         """- optional <location> OR [--user] <username>
         Calls the current weather given an optional arg .e.g. .weather 70119 -
         If you leave out the location, it will try to use the user's set location that is saved -
         You can find another user's weather by using the --user flag. e.g. .weather --user Chad
         """
-        try:
-            user: Union[User, AnonymousUser] = get_user(msg.nick)
+        lookup_user: bool = False
+        for opt, _ in optlist:
+            if opt == "user":
+                lookup_user = True
 
-            if not text and isinstance(user, AnonymousUser):
+        try:
+            optional_user = html.escape(text) if lookup_user and text else msg.nick
+            if lookup_user and not text:
+                irc.reply(f"Please specify the user name.", prefixNick=False)
+                return
+
+            user: Union[User, AnonymousUser] = get_user(optional_user)
+
+            if lookup_user:
+                if not isinstance(user, AnonymousUser):
+                    weather: str = query_current_weather("", user)
+                    irc.reply(weather, prefixNick=False)
+                else:
+                    irc.reply(f"No such user by the name of {text}.", prefixNick=False)
+
+            elif not text and isinstance(user, AnonymousUser):
                 irc.reply(f"No weather location set by {msg.nick}", prefixNick=False)
 
             elif not text:
